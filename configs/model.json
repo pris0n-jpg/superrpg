@@ -1,5 +1,4 @@
 {
-  "api_key": "sk-dHU4iob3mi1Bgkqr444dC5Be9d714758A2Ca05D30b201324",
   "base_url": "https://chat.sjtu.plus/v1",
   "npc": {
     "model": "z-ai/glm-4.6",
