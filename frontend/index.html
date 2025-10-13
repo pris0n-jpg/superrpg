@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="SuperRPG - 现代化角色扮演游戏前端界面" />
+    <meta name="keywords" content="RPG,角色扮演,游戏,聊天,AI" />
+    <meta name="author" content="SuperRPG Team" />
+    
+    <!-- PWA相关 -->
+    <meta name="theme-color" content="#1e293b" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/manifest.json" />
+    
+    <!-- 预加载字体 -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    
+    <!-- 防止FOUC (Flash of Unstyled Content) -->
+    <script>
+      // 主题预加载
+      (function() {
+        const theme = localStorage.getItem('theme') || 'dark';
+        document.documentElement.classList.add(theme);
+      })();
+      
+      // 加载状态管理
+      window.__APP_LOADING__ = true;
+    </script>
+    
+    <title>SuperRPG</title>
+  </head>
+  <body class="bg-secondary-50 dark:bg-secondary-900 text-secondary-900 dark:text-secondary-50 transition-colors duration-300">
+    <div id="root">
+      <!-- 加载占位符 -->
+      <div class="flex items-center justify-center min-h-screen">
+        <div class="text-center">
+          <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
+          <p class="text-secondary-600 dark:text-secondary-400">正在加载 SuperRPG...</p>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 主脚本 -->
+    <script type="module" src="/src/main.tsx"></script>
+    
+    <!-- 错误处理 -->
+    <script>
+      window.addEventListener('error', function(e) {
+        console.error('全局错误:', e.error);
+        // 可以在这里添加错误上报逻辑
+      });
+      
+      window.addEventListener('unhandledrejection', function(e) {
+        console.error('未处理的Promise拒绝:', e.reason);
+        // 可以在这里添加错误上报逻辑
+      });
+    </script>
+  </body>
+</html>

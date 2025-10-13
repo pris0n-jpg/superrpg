@@ -293,15 +293,18 @@ def get_reach_steps(name: str) -> int:
 def move_towards(name: str, target: Tuple[int, int], steps: int) -> ToolResponse:
     """Move an actor toward target grid up to `steps` 4-way steps."""
     steps = max(0, int(steps))
-    if steps == 0:
-        pos = WORLD.positions.get(str(name)) or (0, 0)
-        return ToolResponse(
-            content=[TextBlock(type="text", text=f"{name} 保持在 ({pos[0]}, {pos[1]})，未移动。")],
-            metadata={"moved": 0, "position": list(pos)},
-        )
     current = WORLD.positions.get(str(name))
     if current is None:
-        current = WORLD.positions[str(name)] = (0, 0)
+        # Don't auto-set position to (0,0) if not exists - return error instead
+        return ToolResponse(
+            content=[TextBlock(type="text", text=f"{name} 位置未初始化，无法移动。")],
+            metadata={"moved": 0, "position": None, "error": "position_not_set"},
+        )
+    if steps == 0:
+        return ToolResponse(
+            content=[TextBlock(type="text", text=f"{name} 保持在 ({current[0]}, {current[1]})，未移动。")],
+            metadata={"moved": 0, "position": list(current)},
+        )
     x, y = current
     tx, ty = int(target[0]), int(target[1])
     moved = 0
@@ -368,9 +371,22 @@ def set_scene(
             WORLD.objective_status[str(o)] = WORLD.objective_status.get(str(o), "pending")
     # Optional updates: weather
     if weather is not None:
-        w = str(weather).strip()
+        # DEBUG: 添加日志来诊断类型问题
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.debug(f"set_scene: weather参数类型 = {type(weather)}, 值 = {weather}")
+        
+        # 修复：确保weather是字符串类型
+        if isinstance(weather, dict):
+            logger.warning(f"set_scene: weather参数是字典类型，尝试获取值")
+            # 如果是字典，尝试获取常见的键
+            w = str(weather.get('weather', weather.get('value', ''))).strip()
+        else:
+            w = str(weather).strip()
+        
         if w:
             WORLD.weather = w
+            logger.debug(f"set_scene: 设置weather为 = {w}")
     # Optional updates: time (prefer HH:MM string if provided)
     if isinstance(time, str) and time:
         s = time.strip()

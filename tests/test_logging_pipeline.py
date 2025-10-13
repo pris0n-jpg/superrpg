@@ -1,8 +1,13 @@
 from __future__ import annotations
 
+import sys
+import os
 import json
 
-from eventlog import Event, EventBus, EventType, StoryLogger, StructuredLogger
+# 添加src目录到Python路径
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
+
+from src.eventlog import Event, EventBus, EventType, StoryLogger, StructuredLogger
 
 
 def test_event_serialisation_drops_none(tmp_path):

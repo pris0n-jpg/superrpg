@@ -1,0 +1,400 @@
+{
+  "modules": [
+    {
+      "name": "core",
+      "version": "1.0.0",
+      "description": "核心模块，提供基础功能和服务",
+      "dependencies": [],
+      "enabled": true,
+      "priority": 100,
+      "config_schema": [
+        {
+          "key": "core.debug_mode",
+          "type": "boolean",
+          "required": false,
+          "default": false,
+          "description": "是否启用调试模式"
+        },
+        {
+          "key": "core.log_level",
+          "type": "string",
+          "required": false,
+          "default": "INFO",
+          "description": "日志级别"
+        }
+      ],
+      "health_check_endpoint": "/health/core"
+    },
+    {
+      "name": "game_engine",
+      "version": "1.0.0",
+      "description": "游戏引擎模块，负责游戏逻辑和状态管理",
+      "dependencies": ["core", "event_bus"],
+      "enabled": true,
+      "priority": 90,
+      "config_schema": [
+        {
+          "key": "game.max_rounds",
+          "type": "integer",
+          "required": false,
+          "default": 50,
+          "description": "最大回合数"
+        },
+        {
+          "key": "game.turn_timeout",
+          "type": "integer",
+          "required": false,
+          "default": 30,
+          "description": "回合超时时间（秒）"
+        },
+        {
+          "key": "game.require_hostiles",
+          "type": "boolean",
+          "required": false,
+          "default": true,
+          "description": "是否要求有敌对角色"
+        }
+      ],
+      "health_check_endpoint": "/health/game_engine"
+    },
+    {
+      "name": "character_system",
+      "version": "1.0.0",
+      "description": "角色系统模块，负责角色创建和管理",
+      "dependencies": ["core", "game_engine"],
+      "enabled": true,
+      "priority": 80,
+      "config_schema": [
+        {
+          "key": "character.auto_generate",
+          "type": "boolean",
+          "required": false,
+          "default": true,
+          "description": "是否自动生成角色"
+        },
+        {
+          "key": "character.max_characters",
+          "type": "integer",
+          "required": false,
+          "default": 10,
+          "description": "最大角色数量"
+        }
+      ],
+      "health_check_endpoint": "/health/character_system"
+    },
+    {
+      "name": "world_system",
+      "version": "1.0.0",
+      "description": "世界系统模块，负责世界状态和环境管理",
+      "dependencies": ["core", "game_engine"],
+      "enabled": true,
+      "priority": 80,
+      "config_schema": [
+        {
+          "key": "world.auto_generate",
+          "type": "boolean",
+          "required": false,
+          "default": true,
+          "description": "是否自动生成世界"
+        },
+        {
+          "key": "world.persistence_enabled",
+          "type": "boolean",
+          "required": false,
+          "default": true,
+          "description": "是否启用世界持久化"
+        }
+      ],
+      "health_check_endpoint": "/health/world_system"
+    },
+    {
+      "name": "combat_system",
+      "version": "1.0.0",
+      "description": "战斗系统模块，负责战斗逻辑和计算",
+      "dependencies": ["core", "game_engine", "character_system"],
+      "enabled": true,
+      "priority": 70,
+      "config_schema": [
+        {
+          "key": "combat.damage_calculation",
+          "type": "string",
+          "required": false,
+          "default": "standard",
+          "description": "伤害计算方式",
+          "enum": ["standard", "realistic", "simplified"]
+        },
+        {
+          "key": "combat.critical_hit_chance",
+          "type": "number",
+          "required": false,
+          "default": 0.05,
+          "description": "暴击概率"
+        }
+      ],
+      "health_check_endpoint": "/health/combat_system"
+    },
+    {
+      "name": "ai_agent",
+      "version": "1.0.0",
+      "description": "AI代理模块，负责NPC行为和决策",
+      "dependencies": ["core", "game_engine", "character_system"],
+      "enabled": true,
+      "priority": 70,
+      "config_schema": [
+        {
+          "key": "ai.model_type",
+          "type": "string",
+          "required": false,
+          "default": "gpt-3.5-turbo",
+          "description": "AI模型类型"
+        },
+        {
+          "key": "ai.temperature",
+          "type": "number",
+          "required": false,
+          "default": 0.7,
+          "description": "AI生成温度"
+        }
+      ],
+      "health_check_endpoint": "/health/ai_agent"
+    },
+    {
+      "name": "event_bus",
+      "version": "1.0.0",
+      "description": "事件总线模块，负责事件的发布和订阅",
+      "dependencies": ["core"],
+      "enabled": true,
+      "priority": 95,
+      "config_schema": [
+        {
+          "key": "event_bus.persistence_enabled",
+          "type": "boolean",
+          "required": false,
+          "default": true,
+          "description": "是否启用事件持久化"
+        },
+        {
+          "key": "event_bus.max_workers",
+          "type": "integer",
+          "required": false,
+          "default": 10,
+          "description": "最大工作线程数"
+        }
+      ],
+      "health_check_endpoint": "/health/event_bus"
+    },
+    {
+      "name": "api_gateway",
+      "version": "1.0.0",
+      "description": "API网关模块，负责请求路由和中间件",
+      "dependencies": ["core"],
+      "enabled": true,
+      "priority": 98,
+      "config_schema": [
+        {
+          "key": "api_gateway.host",
+          "type": "string",
+          "required": false,
+          "default": "localhost",
+          "description": "API网关主机"
+        },
+        {
+          "key": "api_gateway.port",
+          "type": "integer",
+          "required": false,
+          "default": 3010,
+          "description": "API网关端口"
+        },
+        {
+          "key": "api_gateway.enable_cors",
+          "type": "boolean",
+          "required": false,
+          "default": true,
+          "description": "是否启用CORS"
+        }
+      ],
+      "health_check_endpoint": "/health"
+    },
+    {
+      "name": "extension_system",
+      "version": "1.0.0",
+      "description": "扩展系统模块，负责扩展的加载和管理",
+      "dependencies": ["core", "event_bus"],
+      "enabled": true,
+      "priority": 60,
+      "config_schema": [
+        {
+          "key": "extensions.auto_load",
+          "type": "boolean",
+          "required": false,
+          "default": true,
+          "description": "是否自动加载扩展"
+        },
+        {
+          "key": "extensions.directory",
+          "type": "string",
+          "required": false,
+          "default": "extensions",
+          "description": "扩展目录"
+        }
+      ],
+      "health_check_endpoint": "/health/extensions"
+    },
+    {
+      "name": "documentation",
+      "version": "1.0.0",
+      "description": "文档生成模块，负责API文档的生成和管理",
+      "dependencies": ["api_gateway"],
+      "enabled": true,
+      "priority": 50,
+      "config_schema": [
+        {
+          "key": "docs.output_dir",
+          "type": "string",
+          "required": false,
+          "default": "docs",
+          "description": "文档输出目录"
+        },
+        {
+          "key": "docs.auto_generate",
+          "type": "boolean",
+          "required": false,
+          "default": true,
+          "description": "是否自动生成文档"
+        }
+      ],
+      "health_check_endpoint": "/health/documentation"
+    },
+    {
+      "name": "metrics",
+      "version": "1.0.0",
+      "description": "指标收集模块，负责性能指标的收集和报告",
+      "dependencies": ["core", "event_bus"],
+      "enabled": true,
+      "priority": 40,
+      "config_schema": [
+        {
+          "key": "metrics.enabled",
+          "type": "boolean",
+          "required": false,
+          "default": true,
+          "description": "是否启用指标收集"
+        },
+        {
+          "key": "metrics.collection_interval",
+          "type": "integer",
+          "required": false,
+          "default": 60,
+          "description": "指标收集间隔（秒）"
+        }
+      ],
+      "health_check_endpoint": "/health/metrics"
+    },
+    {
+      "name": "testing",
+      "version": "1.0.0",
+      "description": "测试模块，提供测试工具和模拟功能",
+      "dependencies": ["core", "game_engine"],
+      "enabled": false,
+      "priority": 10,
+      "config_schema": [
+        {
+          "key": "testing.mock_externals",
+          "type": "boolean",
+          "required": false,
+          "default": true,
+          "description": "是否模拟外部依赖"
+        }
+      ],
+      "health_check_endpoint": "/health/testing"
+    },
+    {
+      "name": "legacy_compat",
+      "version": "1.0.0",
+      "description": "遗留兼容模块，提供与旧版本的兼容性支持",
+      "dependencies": ["core", "game_engine"],
+      "enabled": true,
+      "priority": 30,
+      "config_schema": [
+        {
+          "key": "legacy.enable_mode",
+          "type": "boolean",
+          "required": false,
+          "default": true,
+          "description": "是否启用遗留模式"
+        }
+      ],
+      "health_check_endpoint": "/health/legacy_compat"
+    }
+  ],
+  "module_groups": [
+    {
+      "name": "core_systems",
+      "description": "核心系统模块组",
+      "modules": ["core", "event_bus", "api_gateway"]
+    },
+    {
+      "name": "game_systems",
+      "description": "游戏系统模块组",
+      "modules": ["game_engine", "character_system", "world_system", "combat_system", "ai_agent"]
+    },
+    {
+      "name": "infrastructure",
+      "description": "基础设施模块组",
+      "modules": ["extension_system", "documentation", "metrics"]
+    },
+    {
+      "name": "development",
+      "description": "开发工具模块组",
+      "modules": ["testing", "legacy_compat"]
+    }
+  ],
+  "load_order": [
+    "core",
+    "event_bus",
+    "api_gateway",
+    "game_engine",
+    "character_system",
+    "world_system",
+    "combat_system",
+    "ai_agent",
+    "extension_system",
+    "documentation",
+    "metrics",
+    "legacy_compat",
+    "testing"
+  ],
+  "feature_flags": {
+    "enable_extensions": true,
+    "enable_api_docs": true,
+    "enable_metrics": true,
+    "enable_health_checks": true,
+    "enable_graceful_shutdown": true,
+    "debug_mode": false
+  },
+  "environment_specific": {
+    "development": {
+      "modules": ["core", "event_bus", "api_gateway", "game_engine", "character_system", "world_system", "combat_system", "ai_agent", "extension_system", "documentation", "metrics", "testing"],
+      "feature_flags": {
+        "debug_mode": true,
+        "enable_extensions": true
+      }
+    },
+    "production": {
+      "modules": ["core", "event_bus", "api_gateway", "game_engine", "character_system", "world_system", "combat_system", "ai_agent", "metrics"],
+      "feature_flags": {
+        "debug_mode": false,
+        "enable_extensions": false,
+        "enable_testing": false
+      }
+    },
+    "testing": {
+      "modules": ["core", "event_bus", "game_engine", "character_system", "world_system", "combat_system", "ai_agent", "testing"],
+      "feature_flags": {
+        "debug_mode": true,
+        "enable_extensions": false,
+        "enable_metrics": false
+      }
+    }
+  }
+}

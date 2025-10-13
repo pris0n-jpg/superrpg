@@ -1,0 +1,1910 @@
+================================================================================
+SuperRPG 应用程序 (模块化架构版本)
+================================================================================
+版本: 2.0.0
+Python: 3.13.5 (tags/v3.13.5:6cb20a2, Jun 11 2025, 16:15:46) [MSC v.1943 64 bit (AMD64)]
+工作目录: F:\superrpg
+
+[配置信息]
+  扩展系统: 启用
+  API网关: 启用
+  健康检查: 启用
+  优雅关闭: 启用
+  配置目录: configs
+  扩展目录: extensions
+
+[模块状态]
+  核心系统: core, event_bus, api_gateway
+  游戏系统: game_engine, character_system, world_system
+  基础设施: extension_system, documentation
+================================================================================
+2025-10-13 13:00:30,347 - EnhancedApplicationBootstrap - INFO - 核心组件初始化完成
+2025-10-13 13:00:30,348 - EnhancedApplicationBootstrap - INFO - 开始启动增强应用...
+2025-10-13 13:00:30,348 - EnhancedApplicationBootstrap - INFO - 配置加载完成
+2025-10-13 13:00:30,348 - EnhancedApplicationBootstrap - INFO - 依赖注入容器初始化完成
+2025-10-13 13:00:30,349 - EnhancedApplicationBootstrap - INFO - 中间件设置完成
+2025-10-13 13:00:30,350 - EnhancedApplicationBootstrap - INFO - 配置变更: environment_specific.development.modules = ['core', 'event_bus', 'api_gateway', 'game_engine', 'character_system', 'world_system', 'combat_system', 'ai_agent', 'extension_system', 'documentation', 'metrics', 'testing']
+2025-10-13 13:00:30,350 - EnhancedApplicationBootstrap - INFO - 配置变更: environment_specific.development.feature_flags.debug_mode = True
+2025-10-13 13:00:30,350 - EnhancedApplicationBootstrap - INFO - 配置变更: environment_specific.testing.modules = ['core', 'event_bus', 'game_engine', 'character_system', 'world_system', 'combat_system', 'ai_agent', 'testing']
+2025-10-13 13:00:30,350 - EnhancedApplicationBootstrap - INFO - 配置变更: feature_flags.enable_metrics = True
+2025-10-13 13:00:30,350 - EnhancedApplicationBootstrap - INFO - 配置变更: load_order = ['core', 'event_bus', 'api_gateway', 'game_engine', 'character_system', 'world_system', 'combat_system', 'ai_agent', 'extension_system', 'documentation', 'metrics', 'legacy_compat', 'testing']
+2025-10-13 13:00:30,350 - EnhancedApplicationBootstrap - INFO - 配置变更: feature_flags.enable_health_checks = True
+2025-10-13 13:00:30,350 - EnhancedApplicationBootstrap - INFO - 配置变更: feature_flags.debug_mode = False
+2025-10-13 13:00:30,350 - EnhancedApplicationBootstrap - INFO - 配置变更: environment_specific.production.feature_flags.enable_testing = False
+2025-10-13 13:00:30,350 - EnhancedApplicationBootstrap - INFO - 配置变更: module_groups = [{'name': 'core_systems', 'description': '核心系统模块组', 'modules': ['core', 'event_bus', 'api_gateway']}, {'name': 'game_systems', 'description': '游戏系统模块组', 'modules': ['game_engine', 'character_system', 'world_system', 'combat_system', 'ai_agent']}, {'name': 'infrastructure', 'description': '基础设施模块组', 'modules': ['extension_system', 'documentation', 'metrics']}, {'name': 'development', 'description': '开发工具模块组', 'modules': ['testing', 'legacy_compat']}]
+2025-10-13 13:00:30,350 - EnhancedApplicationBootstrap - INFO - 配置变更: modules = [{'name': 'core', 'version': '1.0.0', 'description': '核心模块，提供基础功能和服务', 'dependencies': [], 'enabled': True, 'priority': 100, 'config_schema': [{'key': 'core.debug_mode', 'type': 'boolean', 'required': False, 'default': False, 'description': '是否启用调试模式'}, {'key': 'core.log_level', 'type': 'string', 'required': False, 'default': 'INFO', 'description': '日志级别'}], 'health_check_endpoint': '/health/core'}, {'name': 'game_engine', 'version': '1.0.0', 'description': '游戏引擎模块，负责游戏逻辑和状态管理', 'dependencies': ['core', 'event_bus'], 'enabled': True, 'priority': 90, 'config_schema': [{'key': 'game.max_rounds', 'type': 'integer', 'required': False, 'default': 50, 'description': '最大回合数'}, {'key': 'game.turn_timeout', 'type': 'integer', 'required': False, 'default': 30, 'description': '回合超时时间（秒）'}, {'key': 'game.require_hostiles', 'type': 'boolean', 'required': False, 'default': True, 'description': '是否要求有敌对角色'}], 'health_check_endpoint': '/health/game_engine'}, {'name': 'character_system', 'version': '1.0.0', 'description': '角色系统模块，负责角色创建和管理', 'dependencies': ['core', 'game_engine'], 'enabled': True, 'priority': 80, 'config_schema': [{'key': 'character.auto_generate', 'type': 'boolean', 'required': False, 'default': True, 'description': '是否自动生成角色'}, {'key': 'character.max_characters', 'type': 'integer', 'required': False, 'default': 10, 'description': '最大角色数量'}], 'health_check_endpoint': '/health/character_system'}, {'name': 'world_system', 'version': '1.0.0', 'description': '世界系统模块，负责世界状态和环境管理', 'dependencies': ['core', 'game_engine'], 'enabled': True, 'priority': 80, 'config_schema': [{'key': 'world.auto_generate', 'type': 'boolean', 'required': False, 'default': True, 'description': '是否自动生成世界'}, {'key': 'world.persistence_enabled', 'type': 'boolean', 'required': False, 'default': True, 'description': '是否启用世界持久化'}], 'health_check_endpoint': '/health/world_system'}, {'name': 'combat_system', 'version': '1.0.0', 'description': '战斗系统模块，负责战斗逻辑和计算', 'dependencies': ['core', 'game_engine', 'character_system'], 'enabled': True, 'priority': 70, 'config_schema': [{'key': 'combat.damage_calculation', 'type': 'string', 'required': False, 'default': 'standard', 'description': '伤害计算方式', 'enum': ['standard', 'realistic', 'simplified']}, {'key': 'combat.critical_hit_chance', 'type': 'number', 'required': False, 'default': 0.05, 'description': '暴击概率'}], 'health_check_endpoint': '/health/combat_system'}, {'name': 'ai_agent', 'version': '1.0.0', 'description': 'AI代理模块，负责NPC行为和决策', 'dependencies': ['core', 'game_engine', 'character_system'], 'enabled': True, 'priority': 70, 'config_schema': [{'key': 'ai.model_type', 'type': 'string', 'required': False, 'default': 'gpt-3.5-turbo', 'description': 'AI模型类型'}, {'key': 'ai.temperature', 'type': 'number', 'required': False, 'default': 0.7, 'description': 'AI生成温度'}], 'health_check_endpoint': '/health/ai_agent'}, {'name': 'event_bus', 'version': '1.0.0', 'description': '事件总线模块，负责事件的发布和订阅', 'dependencies': ['core'], 'enabled': True, 'priority': 95, 'config_schema': [{'key': 'event_bus.persistence_enabled', 'type': 'boolean', 'required': False, 'default': True, 'description': '是否启用事件持久化'}, {'key': 'event_bus.max_workers', 'type': 'integer', 'required': False, 'default': 10, 'description': '最大工作线程数'}], 'health_check_endpoint': '/health/event_bus'}, {'name': 'api_gateway', 'version': '1.0.0', 'description': 'API网关模块，负责请求路由和中间件', 'dependencies': ['core'], 'enabled': True, 'priority': 98, 'config_schema': [{'key': 'api_gateway.host', 'type': 'string', 'required': False, 'default': 'localhost', 'description': 'API网关主机'}, {'key': 'api_gateway.port', 'type': 'integer', 'required': False, 'default': 3010, 'description': 'API网关端口'}, {'key': 'api_gateway.enable_cors', 'type': 'boolean', 'required': False, 'default': True, 'description': '是否启用CORS'}], 'health_check_endpoint': '/health'}, {'name': 'extension_system', 'version': '1.0.0', 'description': '扩展系统模块，负责扩展的加载和管理', 'dependencies': ['core', 'event_bus'], 'enabled': True, 'priority': 60, 'config_schema': [{'key': 'extensions.auto_load', 'type': 'boolean', 'required': False, 'default': True, 'description': '是否自动加载扩展'}, {'key': 'extensions.directory', 'type': 'string', 'required': False, 'default': 'extensions', 'description': '扩展目录'}], 'health_check_endpoint': '/health/extensions'}, {'name': 'documentation', 'version': '1.0.0', 'description': '文档生成模块，负责API文档的生成和管理', 'dependencies': ['api_gateway'], 'enabled': True, 'priority': 50, 'config_schema': [{'key': 'docs.output_dir', 'type': 'string', 'required': False, 'default': 'docs', 'description': '文档输出目录'}, {'key': 'docs.auto_generate', 'type': 'boolean', 'required': False, 'default': True, 'description': '是否自动生成文档'}], 'health_check_endpoint': '/health/documentation'}, {'name': 'metrics', 'version': '1.0.0', 'description': '指标收集模块，负责性能指标的收集和报告', 'dependencies': ['core', 'event_bus'], 'enabled': True, 'priority': 40, 'config_schema': [{'key': 'metrics.enabled', 'type': 'boolean', 'required': False, 'default': True, 'description': '是否启用指标收集'}, {'key': 'metrics.collection_interval', 'type': 'integer', 'required': False, 'default': 60, 'description': '指标收集间隔（秒）'}], 'health_check_endpoint': '/health/metrics'}, {'name': 'testing', 'version': '1.0.0', 'description': '测试模块，提供测试工具和模拟功能', 'dependencies': ['core', 'game_engine'], 'enabled': False, 'priority': 10, 'config_schema': [{'key': 'testing.mock_externals', 'type': 'boolean', 'required': False, 'default': True, 'description': '是否模拟外部依赖'}], 'health_check_endpoint': '/health/testing'}, {'name': 'legacy_compat', 'version': '1.0.0', 'description': '遗留兼容模块，提供与旧版本的兼容性支持', 'dependencies': ['core', 'game_engine'], 'enabled': True, 'priority': 30, 'config_schema': [{'key': 'legacy.enable_mode', 'type': 'boolean', 'required': False, 'default': True, 'description': '是否启用遗留模式'}], 'health_check_endpoint': '/health/legacy_compat'}]
+2025-10-13 13:00:30,350 - EnhancedApplicationBootstrap - INFO - 配置变更: feature_flags.enable_graceful_shutdown = True
+2025-10-13 13:00:30,351 - EnhancedApplicationBootstrap - INFO - 配置变更: environment_specific.testing.feature_flags.debug_mode = True
+2025-10-13 13:00:30,351 - EnhancedApplicationBootstrap - INFO - 配置变更: environment_specific.production.modules = ['core', 'event_bus', 'api_gateway', 'game_engine', 'character_system', 'world_system', 'combat_system', 'ai_agent', 'metrics']
+2025-10-13 13:00:30,351 - EnhancedApplicationBootstrap - INFO - 配置变更: environment_specific.production.feature_flags.enable_extensions = False
+2025-10-13 13:00:30,351 - EnhancedApplicationBootstrap - INFO - 配置变更: environment_specific.development.feature_flags.enable_extensions = True
+2025-10-13 13:00:30,351 - EnhancedApplicationBootstrap - INFO - 配置变更: environment_specific.production.feature_flags.debug_mode = False
+2025-10-13 13:00:30,351 - EnhancedApplicationBootstrap - INFO - 配置变更: feature_flags.enable_extensions = True
+2025-10-13 13:00:30,351 - EnhancedApplicationBootstrap - INFO - 配置变更: feature_flags.enable_api_docs = True
+2025-10-13 13:00:30,351 - EnhancedApplicationBootstrap - INFO - 配置变更: environment_specific.testing.feature_flags.enable_metrics = False
+2025-10-13 13:00:30,351 - EnhancedApplicationBootstrap - INFO - 配置变更: environment_specific.testing.feature_flags.enable_extensions = False
+2025-10-13 13:00:30,355 - EnhancedApplicationBootstrap - INFO - 模块加载成功: core
+2025-10-13 13:00:30,355 - EnhancedApplicationBootstrap - INFO - 模块加载成功: api_gateway
+2025-10-13 13:00:30,355 - EnhancedApplicationBootstrap - INFO - 模块加载成功: event_bus
+2025-10-13 13:00:30,355 - EnhancedApplicationBootstrap - INFO - 模块加载成功: game_engine
+2025-10-13 13:00:30,355 - EnhancedApplicationBootstrap - INFO - 模块加载成功: character_system
+2025-10-13 13:00:30,355 - EnhancedApplicationBootstrap - INFO - 模块加载成功: world_system
+2025-10-13 13:00:30,355 - EnhancedApplicationBootstrap - INFO - 模块加载成功: combat_system
+2025-10-13 13:00:30,355 - EnhancedApplicationBootstrap - INFO - 模块加载成功: ai_agent
+2025-10-13 13:00:30,355 - EnhancedApplicationBootstrap - INFO - 模块加载成功: extension_system
+2025-10-13 13:00:30,355 - EnhancedApplicationBootstrap - INFO - 模块加载成功: documentation
+2025-10-13 13:00:30,355 - EnhancedApplicationBootstrap - INFO - 模块加载成功: metrics
+2025-10-13 13:00:30,355 - EnhancedApplicationBootstrap - INFO - 模块加载成功: legacy_compat
+2025-10-13 13:00:30,355 - EnhancedApplicationBootstrap - INFO - 模块加载完成，共加载 12 个模块
+2025-10-13 13:00:30,356 - EnhancedApplicationBootstrap - WARNING - 扩展目录不存在: extensions
+2025-10-13 13:00:30,356 - EnhancedApplicationBootstrap - INFO - 扩展系统初始化完成
+2025-10-13 13:00:30,356 - EnhancedApplicationBootstrap - INFO - 健康检查系统初始化完成
+2025-10-13 13:00:30,356 - EnhancedApplicationBootstrap - INFO - API网关初始化完成
+2025-10-13 13:00:30,356 - EnhancedApplicationBootstrap - INFO - 优雅关闭设置完成
+2025-10-13 13:00:30,356 - EnhancedApplicationBootstrap - INFO - 应用启动完成，耗时 0.01 秒
+2025-10-13 13:00:30,356 - __main__ - INFO - 应用程序启动成功
+2025-10-13 13:00:30,370 - EnhancedApplicationBootstrap - INFO - API文档生成完成: ['docs/superrpg_api_20251013_130030.json', 'docs/superrpg_api_20251013_130030.yaml', 'docs/superrpg_api_20251013_130030.html']
+2025-10-13 13:00:30,371 - EnhancedApplicationBootstrap - INFO - 启动游戏模式...
+2025-10-13 13:00:30,380 - EnhancedApplicationBootstrap - WARNING - 无法加载工具列表，使用空工具列表
+2025-10-13 13:00:30,380 - EnhancedApplicationBootstrap - INFO - Remote agent disabled for Doctor, using simple agent
+2025-10-13 13:00:30,380 - EnhancedApplicationBootstrap - INFO - Remote agent disabled for Mephisto, using simple agent
+2025-10-13 13:00:30,380 - EnhancedApplicationBootstrap - INFO - Remote agent disabled for Amiya, using simple agent
+2025-10-13 13:00:30,381 - EnhancedApplicationBootstrap - INFO - Remote agent disabled for Faust, using simple agent
+2025-10-13 13:00:30,381 - EnhancedApplicationBootstrap - INFO - Allowed names set to: ['Doctor', 'Mephisto', 'Amiya', 'Faust']
+
+============================================================
+游戏开始！
+============================================================
+
+2025-10-13 13:00:30,381 - EnhancedApplicationBootstrap - INFO - Game started
+
+--- 第 1 回合 ---
+
+🎭 Doctor:
+（常穿黑色作战外套与兜帽，面罩下是白发灰瞳的面容（动画版身高约165cm），体力偏弱但行动沉稳。）
+Doctor沉声道：“罗德岛“博士”：战术协调与决策核心，偏好整合情报、分配资源，在压力下保持冷静并快速下达指令。”
+
+🎭 Amiya:
+（棕发蓝瞳的卡特斯/奇美拉族少女，标志性兔耳与项圈、黑色长袜，身材娇小（身高约142cm，升变后可长到150cm）。）
+Amiya沉声道：“罗德岛公开领导人阿米娅。博士，能再见到您……真是太好了。”
+
+🎭 Mephisto:
+（白发绿瞳的黎博利少年，身着长大衣与礼服式束腰，随身携带黑色手杖与扩音装置。）
+Mephisto沉声道：“整合运动的青年指挥官梅菲斯特。再见了，家……再见了，为我唱歌的人。”
+
+🎭 Faust:
+（暗蓝短发与绿瞳，面颊带伤痕，穿着沉色披风和轻便装具，手持巨型弩与可折叠弩炮组件。）
+Faust沉声道：“整合运动的狙击手浮士德。我希望哪怕是一个人，你也要活下去。不要死。”
+
+--- 第 2 回合 ---
+
+🎭 Doctor:
+（沉稳地环视四周）
+Doctor轻声回应：“战场信息实时同步，任何异常立即汇报”
+
+🎭 Amiya:
+（沉稳地环视四周）
+Amiya说道：“博士，您还有许多事情需要处理，现在还不能休息哦。 源石技艺准备就绪，请接住这道护盾”
+
+🎭 Mephisto:
+（沉稳地环视四周）
+Mephisto说道：“浮士德，听我的乐章，让他们全部跪下。 听好了，同伴，要用恐惧占领他们的心”
+
+🎭 Faust:
+（沉稳地环视四周）
+Faust说道：“目标确认——浮士德狙击开始。 风速稳定，再给我两秒确认”
+
+--- 第 3 回合 ---
+
+🎭 Doctor:
+（沉稳地环视四周）
+Doctor轻声回应：“大家保持阵型，我来调配支援”
+
+🎭 Amiya:
+（沉稳地环视四周）
+Amiya说道：“博士，能再见到您……真是太好了。 只要我们团结起来，就没有跨不过的难关”
+
+🎭 Mephisto:
+（沉稳地环视四周）
+Mephisto说道：“再见了，家……再见了，为我唱歌的人。 感染者们，跟着节拍，将他们席卷”
+
+🎭 Faust:
+（沉稳地环视四周）
+Faust说道：“我希望哪怕是一个人，你也要活下去。不要死。 目标无掩体，准备下一发”
+
+--- 第 4 回合 ---
+
+🎭 Doctor:
+（沉稳地环视四周）
+Doctor轻声回应：“注意护卫线，同伴先把视线吸引过去”
+
+🎭 Amiya:
+（沉稳地环视四周）
+Amiya说道：“博士，您还有许多事情需要处理，现在还不能休息哦。 我在后方支援，同伴请小心”
+
+🎭 Mephisto:
+（沉稳地环视四周）
+Mephisto说道：“浮士德，听我的乐章，让他们全部跪下。 浮士德，让你的箭与我的乐章同奏”
+
+🎭 Faust:
+（沉稳地环视四周）
+Faust说道：“目标确认——浮士德狙击开始。 锁定角度，同伴别挡在射线里”
+
+--- 第 5 回合 ---
+
+🎭 Doctor:
+（沉稳地环视四周）
+Doctor轻声回应：“战场信息实时同步，任何异常立即汇报”
+
+🎭 Amiya:
+（沉稳地环视四周）
+Amiya说道：“博士，能再见到您……真是太好了。 源石技艺准备就绪，请接住这道护盾”
+
+🎭 Mephisto:
+（沉稳地环视四周）
+Mephisto说道：“再见了，家……再见了，为我唱歌的人。 听好了，同伴，要用恐惧占领他们的心”
+
+🎭 Faust:
+（沉稳地环视四周）
+Faust说道：“我希望哪怕是一个人，你也要活下去。不要死。 风速稳定，再给我两秒确认”
+
+--- 第 6 回合 ---
+
+🎭 Doctor:
+（沉稳地环视四周）
+Doctor轻声回应：“大家保持阵型，我来调配支援”
+
+🎭 Amiya:
+（沉稳地环视四周）
+Amiya说道：“博士，您还有许多事情需要处理，现在还不能休息哦。 只要我们团结起来，就没有跨不过的难关”
+
+🎭 Mephisto:
+（沉稳地环视四周）
+Mephisto说道：“浮士德，听我的乐章，让他们全部跪下。 感染者们，跟着节拍，将他们席卷”
+
+🎭 Faust:
+（沉稳地环视四周）
+Faust说道：“目标确认——浮士德狙击开始。 目标无掩体，准备下一发”
+
+--- 第 7 回合 ---
+
+🎭 Doctor:
+（沉稳地环视四周）
+Doctor轻声回应：“注意护卫线，同伴先把视线吸引过去”
+
+🎭 Amiya:
+（沉稳地环视四周）
+Amiya说道：“博士，能再见到您……真是太好了。 我在后方支援，同伴请小心”
+
+🎭 Mephisto:
+（沉稳地环视四周）
+Mephisto说道：“再见了，家……再见了，为我唱歌的人。 浮士德，让你的箭与我的乐章同奏”
+
+🎭 Faust:
+（沉稳地环视四周）
+Faust说道：“我希望哪怕是一个人，你也要活下去。不要死。 锁定角度，同伴别挡在射线里”
+
+--- 第 8 回合 ---
+
+🎭 Doctor:
+（沉稳地环视四周）
+Doctor轻声回应：“战场信息实时同步，任何异常立即汇报”
+
+🎭 Amiya:
+（沉稳地环视四周）
+Amiya说道：“博士，您还有许多事情需要处理，现在还不能休息哦。 源石技艺准备就绪，请接住这道护盾”
+
+🎭 Mephisto:
+（沉稳地环视四周）
+Mephisto说道：“浮士德，听我的乐章，让他们全部跪下。 听好了，同伴，要用恐惧占领他们的心”
+
+🎭 Faust:
+（沉稳地环视四周）
+Faust说道：“目标确认——浮士德狙击开始。 风速稳定，再给我两秒确认”
+
+--- 第 9 回合 ---
+
+🎭 Doctor:
+（沉稳地环视四周）
+Doctor轻声回应：“大家保持阵型，我来调配支援”
+
+🎭 Amiya:
+（沉稳地环视四周）
+Amiya说道：“博士，能再见到您……真是太好了。 只要我们团结起来，就没有跨不过的难关”
+
+🎭 Mephisto:
+（沉稳地环视四周）
+Mephisto说道：“再见了，家……再见了，为我唱歌的人。 感染者们，跟着节拍，将他们席卷”
+
+🎭 Faust:
+（沉稳地环视四周）
+Faust说道：“我希望哪怕是一个人，你也要活下去。不要死。 目标无掩体，准备下一发”
+
+--- 第 10 回合 ---
+
+🎭 Doctor:
+（沉稳地环视四周）
+Doctor轻声回应：“注意护卫线，同伴先把视线吸引过去”
+
+🎭 Amiya:
+（沉稳地环视四周）
+Amiya说道：“博士，您还有许多事情需要处理，现在还不能休息哦。 我在后方支援，同伴请小心”
+
+🎭 Mephisto:
+（沉稳地环视四周）
+Mephisto说道：“浮士德，听我的乐章，让他们全部跪下。 浮士德，让你的箭与我的乐章同奏”
+
+🎭 Faust:
+（沉稳地环视四周）
+Faust说道：“目标确认——浮士德狙击开始。 锁定角度，同伴别挡在射线里”
+
+--- 第 11 回合 ---
+
+🎭 Doctor:
+（沉稳地环视四周）
+Doctor轻声回应：“战场信息实时同步，任何异常立即汇报”
+
+🎭 Amiya:
+（沉稳地环视四周）
+Amiya说道：“博士，能再见到您……真是太好了。 源石技艺准备就绪，请接住这道护盾”
+
+🎭 Mephisto:
+（沉稳地环视四周）
+Mephisto说道：“再见了，家……再见了，为我唱歌的人。 听好了，同伴，要用恐惧占领他们的心”
+
+🎭 Faust:
+（沉稳地环视四周）
+Faust说道：“我希望哪怕是一个人，你也要活下去。不要死。 风速稳定，再给我两秒确认”
+
+--- 第 12 回合 ---
+
+🎭 Doctor:
+（沉稳地环视四周）
+Doctor轻声回应：“大家保持阵型，我来调配支援”
+
+🎭 Amiya:
+（沉稳地环视四周）
+Amiya说道：“博士，您还有许多事情需要处理，现在还不能休息哦。 只要我们团结起来，就没有跨不过的难关”
+
+🎭 Mephisto:
+（沉稳地环视四周）
+Mephisto说道：“浮士德，听我的乐章，让他们全部跪下。 感染者们，跟着节拍，将他们席卷”
+
+🎭 Faust:
+（沉稳地环视四周）
+Faust说道：“目标确认——浮士德狙击开始。 目标无掩体，准备下一发”
+
+--- 第 13 回合 ---
+
+🎭 Doctor:
+（沉稳地环视四周）
+Doctor轻声回应：“注意护卫线，同伴先把视线吸引过去”
+
+🎭 Amiya:
+（沉稳地环视四周）
+Amiya说道：“博士，能再见到您……真是太好了。 我在后方支援，同伴请小心”
+
+🎭 Mephisto:
+（沉稳地环视四周）
+Mephisto说道：“再见了，家……再见了，为我唱歌的人。 浮士德，让你的箭与我的乐章同奏”
+
+🎭 Faust:
+（沉稳地环视四周）
+Faust说道：“我希望哪怕是一个人，你也要活下去。不要死。 锁定角度，同伴别挡在射线里”
+
+--- 第 14 回合 ---
+
+🎭 Doctor:
+（沉稳地环视四周）
+Doctor轻声回应：“战场信息实时同步，任何异常立即汇报”
+
+🎭 Amiya:
+（沉稳地环视四周）
+Amiya说道：“博士，您还有许多事情需要处理，现在还不能休息哦。 源石技艺准备就绪，请接住这道护盾”
+
+🎭 Mephisto:
+（沉稳地环视四周）
+Mephisto说道：“浮士德，听我的乐章，让他们全部跪下。 听好了，同伴，要用恐惧占领他们的心”
+
+🎭 Faust:
+（沉稳地环视四周）
+Faust说道：“目标确认——浮士德狙击开始。 风速稳定，再给我两秒确认”
+
+--- 第 15 回合 ---
+
+🎭 Doctor:
+（沉稳地环视四周）
+Doctor轻声回应：“大家保持阵型，我来调配支援”
+
+🎭 Amiya:
+（沉稳地环视四周）
+Amiya说道：“博士，能再见到您……真是太好了。 只要我们团结起来，就没有跨不过的难关”
+
+🎭 Mephisto:
+（沉稳地环视四周）
+Mephisto说道：“再见了，家……再见了，为我唱歌的人。 感染者们，跟着节拍，将他们席卷”
+
+🎭 Faust:
+（沉稳地环视四周）
+Faust说道：“我希望哪怕是一个人，你也要活下去。不要死。 目标无掩体，准备下一发”
+
+--- 第 16 回合 ---
+
+🎭 Doctor:
+（沉稳地环视四周）
+Doctor轻声回应：“注意护卫线，同伴先把视线吸引过去”
+
+🎭 Amiya:
+（沉稳地环视四周）
+Amiya说道：“博士，您还有许多事情需要处理，现在还不能休息哦。 我在后方支援，同伴请小心”
+
+🎭 Mephisto:
+（沉稳地环视四周）
+Mephisto说道：“浮士德，听我的乐章，让他们全部跪下。 浮士德，让你的箭与我的乐章同奏”
+
+🎭 Faust:
+（沉稳地环视四周）
+Faust说道：“目标确认——浮士德狙击开始。 锁定角度，同伴别挡在射线里”
+
+--- 第 17 回合 ---
+
+🎭 Doctor:
+（沉稳地环视四周）
+Doctor轻声回应：“战场信息实时同步，任何异常立即汇报”
+
+🎭 Amiya:
+（沉稳地环视四周）
+Amiya说道：“博士，能再见到您……真是太好了。 源石技艺准备就绪，请接住这道护盾”
+
+🎭 Mephisto:
+（沉稳地环视四周）
+Mephisto说道：“再见了，家……再见了，为我唱歌的人。 听好了，同伴，要用恐惧占领他们的心”
+
+🎭 Faust:
+（沉稳地环视四周）
+Faust说道：“我希望哪怕是一个人，你也要活下去。不要死。 风速稳定，再给我两秒确认”
+
+--- 第 18 回合 ---
+
+🎭 Doctor:
+（沉稳地环视四周）
+Doctor轻声回应：“大家保持阵型，我来调配支援”
+
+🎭 Amiya:
+（沉稳地环视四周）
+Amiya说道：“博士，您还有许多事情需要处理，现在还不能休息哦。 只要我们团结起来，就没有跨不过的难关”
+
+🎭 Mephisto:
+（沉稳地环视四周）
+Mephisto说道：“浮士德，听我的乐章，让他们全部跪下。 感染者们，跟着节拍，将他们席卷”
+
+🎭 Faust:
+（沉稳地环视四周）
+Faust说道：“目标确认——浮士德狙击开始。 目标无掩体，准备下一发”
+
+--- 第 19 回合 ---
+
+🎭 Doctor:
+（沉稳地环视四周）
+Doctor轻声回应：“注意护卫线，同伴先把视线吸引过去”
+
+🎭 Amiya:
+（沉稳地环视四周）
+Amiya说道：“博士，能再见到您……真是太好了。 我在后方支援，同伴请小心”
+
+🎭 Mephisto:
+（沉稳地环视四周）
+Mephisto说道：“再见了，家……再见了，为我唱歌的人。 浮士德，让你的箭与我的乐章同奏”
+
+🎭 Faust:
+（沉稳地环视四周）
+Faust说道：“我希望哪怕是一个人，你也要活下去。不要死。 锁定角度，同伴别挡在射线里”
+
+--- 第 20 回合 ---
+
+🎭 Doctor:
+（沉稳地环视四周）
+Doctor轻声回应：“战场信息实时同步，任何异常立即汇报”
+
+🎭 Amiya:
+（沉稳地环视四周）
+Amiya说道：“博士，您还有许多事情需要处理，现在还不能休息哦。 源石技艺准备就绪，请接住这道护盾”
+
+🎭 Mephisto:
+（沉稳地环视四周）
+Mephisto说道：“浮士德，听我的乐章，让他们全部跪下。 听好了，同伴，要用恐惧占领他们的心”
+
+🎭 Faust:
+（沉稳地环视四周）
+Faust说道：“目标确认——浮士德狙击开始。 风速稳定，再给我两秒确认”
+
+--- 第 21 回合 ---
+
+🎭 Doctor:
+（沉稳地环视四周）
+Doctor轻声回应：“大家保持阵型，我来调配支援”
+
+🎭 Amiya:
+（沉稳地环视四周）
+Amiya说道：“博士，能再见到您……真是太好了。 只要我们团结起来，就没有跨不过的难关”
+
+🎭 Mephisto:
+（沉稳地环视四周）
+Mephisto说道：“再见了，家……再见了，为我唱歌的人。 感染者们，跟着节拍，将他们席卷”
+
+🎭 Faust:
+（沉稳地环视四周）
+Faust说道：“我希望哪怕是一个人，你也要活下去。不要死。 目标无掩体，准备下一发”
+
+--- 第 22 回合 ---
+
+🎭 Doctor:
+（沉稳地环视四周）
+Doctor轻声回应：“注意护卫线，同伴先把视线吸引过去”
+
+🎭 Amiya:
+（沉稳地环视四周）
+Amiya说道：“博士，您还有许多事情需要处理，现在还不能休息哦。 我在后方支援，同伴请小心”
+
+🎭 Mephisto:
+（沉稳地环视四周）
+Mephisto说道：“浮士德，听我的乐章，让他们全部跪下。 浮士德，让你的箭与我的乐章同奏”
+
+🎭 Faust:
+（沉稳地环视四周）
+Faust说道：“目标确认——浮士德狙击开始。 锁定角度，同伴别挡在射线里”
+
+--- 第 23 回合 ---
+
+🎭 Doctor:
+（沉稳地环视四周）
+Doctor轻声回应：“战场信息实时同步，任何异常立即汇报”
+
+🎭 Amiya:
+（沉稳地环视四周）
+Amiya说道：“博士，能再见到您……真是太好了。 源石技艺准备就绪，请接住这道护盾”
+
+🎭 Mephisto:
+（沉稳地环视四周）
+Mephisto说道：“再见了，家……再见了，为我唱歌的人。 听好了，同伴，要用恐惧占领他们的心”
+
+🎭 Faust:
+（沉稳地环视四周）
+Faust说道：“我希望哪怕是一个人，你也要活下去。不要死。 风速稳定，再给我两秒确认”
+
+--- 第 24 回合 ---
+
+🎭 Doctor:
+（沉稳地环视四周）
+Doctor轻声回应：“大家保持阵型，我来调配支援”
+
+🎭 Amiya:
+（沉稳地环视四周）
+Amiya说道：“博士，您还有许多事情需要处理，现在还不能休息哦。 只要我们团结起来，就没有跨不过的难关”
+
+🎭 Mephisto:
+（沉稳地环视四周）
+Mephisto说道：“浮士德，听我的乐章，让他们全部跪下。 感染者们，跟着节拍，将他们席卷”
+
+🎭 Faust:
+（沉稳地环视四周）
+Faust说道：“目标确认——浮士德狙击开始。 目标无掩体，准备下一发”
+
+--- 第 25 回合 ---
+
+🎭 Doctor:
+（沉稳地环视四周）
+Doctor轻声回应：“注意护卫线，同伴先把视线吸引过去”
+
+🎭 Amiya:
+（沉稳地环视四周）
+Amiya说道：“博士，能再见到您……真是太好了。 我在后方支援，同伴请小心”
+
+🎭 Mephisto:
+（沉稳地环视四周）
+Mephisto说道：“再见了，家……再见了，为我唱歌的人。 浮士德，让你的箭与我的乐章同奏”
+
+🎭 Faust:
+（沉稳地环视四周）
+Faust说道：“我希望哪怕是一个人，你也要活下去。不要死。 锁定角度，同伴别挡在射线里”
+
+--- 第 26 回合 ---
+
+🎭 Doctor:
+（沉稳地环视四周）
+Doctor轻声回应：“战场信息实时同步，任何异常立即汇报”
+
+🎭 Amiya:
+（沉稳地环视四周）
+Amiya说道：“博士，您还有许多事情需要处理，现在还不能休息哦。 源石技艺准备就绪，请接住这道护盾”
+
+🎭 Mephisto:
+（沉稳地环视四周）
+Mephisto说道：“浮士德，听我的乐章，让他们全部跪下。 听好了，同伴，要用恐惧占领他们的心”
+
+🎭 Faust:
+（沉稳地环视四周）
+Faust说道：“目标确认——浮士德狙击开始。 风速稳定，再给我两秒确认”
+
+--- 第 27 回合 ---
+
+🎭 Doctor:
+（沉稳地环视四周）
+Doctor轻声回应：“大家保持阵型，我来调配支援”
+
+🎭 Amiya:
+（沉稳地环视四周）
+Amiya说道：“博士，能再见到您……真是太好了。 只要我们团结起来，就没有跨不过的难关”
+
+🎭 Mephisto:
+（沉稳地环视四周）
+Mephisto说道：“再见了，家……再见了，为我唱歌的人。 感染者们，跟着节拍，将他们席卷”
+
+🎭 Faust:
+（沉稳地环视四周）
+Faust说道：“我希望哪怕是一个人，你也要活下去。不要死。 目标无掩体，准备下一发”
+
+--- 第 28 回合 ---
+
+🎭 Doctor:
+（沉稳地环视四周）
+Doctor轻声回应：“注意护卫线，同伴先把视线吸引过去”
+
+🎭 Amiya:
+（沉稳地环视四周）
+Amiya说道：“博士，您还有许多事情需要处理，现在还不能休息哦。 我在后方支援，同伴请小心”
+
+🎭 Mephisto:
+（沉稳地环视四周）
+Mephisto说道：“浮士德，听我的乐章，让他们全部跪下。 浮士德，让你的箭与我的乐章同奏”
+
+🎭 Faust:
+（沉稳地环视四周）
+Faust说道：“目标确认——浮士德狙击开始。 锁定角度，同伴别挡在射线里”
+
+--- 第 29 回合 ---
+
+🎭 Doctor:
+（沉稳地环视四周）
+Doctor轻声回应：“战场信息实时同步，任何异常立即汇报”
+
+🎭 Amiya:
+（沉稳地环视四周）
+Amiya说道：“博士，能再见到您……真是太好了。 源石技艺准备就绪，请接住这道护盾”
+
+🎭 Mephisto:
+（沉稳地环视四周）
+Mephisto说道：“再见了，家……再见了，为我唱歌的人。 听好了，同伴，要用恐惧占领他们的心”
+
+🎭 Faust:
+（沉稳地环视四周）
+Faust说道：“我希望哪怕是一个人，你也要活下去。不要死。 风速稳定，再给我两秒确认”
+
+--- 第 30 回合 ---
+
+🎭 Doctor:
+（沉稳地环视四周）
+Doctor轻声回应：“大家保持阵型，我来调配支援”
+
+🎭 Amiya:
+（沉稳地环视四周）
+Amiya说道：“博士，您还有许多事情需要处理，现在还不能休息哦。 只要我们团结起来，就没有跨不过的难关”
+
+🎭 Mephisto:
+（沉稳地环视四周）
+Mephisto说道：“浮士德，听我的乐章，让他们全部跪下。 感染者们，跟着节拍，将他们席卷”
+
+🎭 Faust:
+（沉稳地环视四周）
+Faust说道：“目标确认——浮士德狙击开始。 目标无掩体，准备下一发”
+
+--- 第 31 回合 ---
+
+🎭 Doctor:
+（沉稳地环视四周）
+Doctor轻声回应：“注意护卫线，同伴先把视线吸引过去”
+
+🎭 Amiya:
+（沉稳地环视四周）
+Amiya说道：“博士，能再见到您……真是太好了。 我在后方支援，同伴请小心”
+
+🎭 Mephisto:
+（沉稳地环视四周）
+Mephisto说道：“再见了，家……再见了，为我唱歌的人。 浮士德，让你的箭与我的乐章同奏”
+
+🎭 Faust:
+（沉稳地环视四周）
+Faust说道：“我希望哪怕是一个人，你也要活下去。不要死。 锁定角度，同伴别挡在射线里”
+
+--- 第 32 回合 ---
+
+🎭 Doctor:
+（沉稳地环视四周）
+Doctor轻声回应：“战场信息实时同步，任何异常立即汇报”
+
+🎭 Amiya:
+（沉稳地环视四周）
+Amiya说道：“博士，您还有许多事情需要处理，现在还不能休息哦。 源石技艺准备就绪，请接住这道护盾”
+
+🎭 Mephisto:
+（沉稳地环视四周）
+Mephisto说道：“浮士德，听我的乐章，让他们全部跪下。 听好了，同伴，要用恐惧占领他们的心”
+
+🎭 Faust:
+（沉稳地环视四周）
+Faust说道：“目标确认——浮士德狙击开始。 风速稳定，再给我两秒确认”
+
+--- 第 33 回合 ---
+
+🎭 Doctor:
+（沉稳地环视四周）
+Doctor轻声回应：“大家保持阵型，我来调配支援”
+
+🎭 Amiya:
+（沉稳地环视四周）
+Amiya说道：“博士，能再见到您……真是太好了。 只要我们团结起来，就没有跨不过的难关”
+
+🎭 Mephisto:
+（沉稳地环视四周）
+Mephisto说道：“再见了，家……再见了，为我唱歌的人。 感染者们，跟着节拍，将他们席卷”
+
+🎭 Faust:
+（沉稳地环视四周）
+Faust说道：“我希望哪怕是一个人，你也要活下去。不要死。 目标无掩体，准备下一发”
+
+--- 第 34 回合 ---
+
+🎭 Doctor:
+（沉稳地环视四周）
+Doctor轻声回应：“注意护卫线，同伴先把视线吸引过去”
+
+🎭 Amiya:
+（沉稳地环视四周）
+Amiya说道：“博士，您还有许多事情需要处理，现在还不能休息哦。 我在后方支援，同伴请小心”
+
+🎭 Mephisto:
+（沉稳地环视四周）
+Mephisto说道：“浮士德，听我的乐章，让他们全部跪下。 浮士德，让你的箭与我的乐章同奏”
+
+🎭 Faust:
+（沉稳地环视四周）
+Faust说道：“目标确认——浮士德狙击开始。 锁定角度，同伴别挡在射线里”
+
+--- 第 35 回合 ---
+
+🎭 Doctor:
+（沉稳地环视四周）
+Doctor轻声回应：“战场信息实时同步，任何异常立即汇报”
+
+🎭 Amiya:
+（沉稳地环视四周）
+Amiya说道：“博士，能再见到您……真是太好了。 源石技艺准备就绪，请接住这道护盾”
+
+🎭 Mephisto:
+（沉稳地环视四周）
+Mephisto说道：“再见了，家……再见了，为我唱歌的人。 听好了，同伴，要用恐惧占领他们的心”
+
+🎭 Faust:
+（沉稳地环视四周）
+Faust说道：“我希望哪怕是一个人，你也要活下去。不要死。 风速稳定，再给我两秒确认”
+
+--- 第 36 回合 ---
+
+🎭 Doctor:
+（沉稳地环视四周）
+Doctor轻声回应：“大家保持阵型，我来调配支援”
+
+🎭 Amiya:
+（沉稳地环视四周）
+Amiya说道：“博士，您还有许多事情需要处理，现在还不能休息哦。 只要我们团结起来，就没有跨不过的难关”
+
+🎭 Mephisto:
+（沉稳地环视四周）
+Mephisto说道：“浮士德，听我的乐章，让他们全部跪下。 感染者们，跟着节拍，将他们席卷”
+
+🎭 Faust:
+（沉稳地环视四周）
+Faust说道：“目标确认——浮士德狙击开始。 目标无掩体，准备下一发”
+
+--- 第 37 回合 ---
+
+🎭 Doctor:
+（沉稳地环视四周）
+Doctor轻声回应：“注意护卫线，同伴先把视线吸引过去”
+
+🎭 Amiya:
+（沉稳地环视四周）
+Amiya说道：“博士，能再见到您……真是太好了。 我在后方支援，同伴请小心”
+
+🎭 Mephisto:
+（沉稳地环视四周）
+Mephisto说道：“再见了，家……再见了，为我唱歌的人。 浮士德，让你的箭与我的乐章同奏”
+
+🎭 Faust:
+（沉稳地环视四周）
+Faust说道：“我希望哪怕是一个人，你也要活下去。不要死。 锁定角度，同伴别挡在射线里”
+
+--- 第 38 回合 ---
+
+🎭 Doctor:
+（沉稳地环视四周）
+Doctor轻声回应：“战场信息实时同步，任何异常立即汇报”
+
+🎭 Amiya:
+（沉稳地环视四周）
+Amiya说道：“博士，您还有许多事情需要处理，现在还不能休息哦。 源石技艺准备就绪，请接住这道护盾”
+
+🎭 Mephisto:
+（沉稳地环视四周）
+Mephisto说道：“浮士德，听我的乐章，让他们全部跪下。 听好了，同伴，要用恐惧占领他们的心”
+
+🎭 Faust:
+（沉稳地环视四周）
+Faust说道：“目标确认——浮士德狙击开始。 风速稳定，再给我两秒确认”
+
+--- 第 39 回合 ---
+
+🎭 Doctor:
+（沉稳地环视四周）
+Doctor轻声回应：“大家保持阵型，我来调配支援”
+
+🎭 Amiya:
+（沉稳地环视四周）
+Amiya说道：“博士，能再见到您……真是太好了。 只要我们团结起来，就没有跨不过的难关”
+
+🎭 Mephisto:
+（沉稳地环视四周）
+Mephisto说道：“再见了，家……再见了，为我唱歌的人。 感染者们，跟着节拍，将他们席卷”
+
+🎭 Faust:
+（沉稳地环视四周）
+Faust说道：“我希望哪怕是一个人，你也要活下去。不要死。 目标无掩体，准备下一发”
+
+--- 第 40 回合 ---
+
+🎭 Doctor:
+（沉稳地环视四周）
+Doctor轻声回应：“注意护卫线，同伴先把视线吸引过去”
+
+🎭 Amiya:
+（沉稳地环视四周）
+Amiya说道：“博士，您还有许多事情需要处理，现在还不能休息哦。 我在后方支援，同伴请小心”
+
+🎭 Mephisto:
+（沉稳地环视四周）
+Mephisto说道：“浮士德，听我的乐章，让他们全部跪下。 浮士德，让你的箭与我的乐章同奏”
+
+🎭 Faust:
+（沉稳地环视四周）
+Faust说道：“目标确认——浮士德狙击开始。 锁定角度，同伴别挡在射线里”
+
+--- 第 41 回合 ---
+
+🎭 Doctor:
+（沉稳地环视四周）
+Doctor轻声回应：“战场信息实时同步，任何异常立即汇报”
+
+🎭 Amiya:
+（沉稳地环视四周）
+Amiya说道：“博士，能再见到您……真是太好了。 源石技艺准备就绪，请接住这道护盾”
+
+🎭 Mephisto:
+（沉稳地环视四周）
+Mephisto说道：“再见了，家……再见了，为我唱歌的人。 听好了，同伴，要用恐惧占领他们的心”
+
+🎭 Faust:
+（沉稳地环视四周）
+Faust说道：“我希望哪怕是一个人，你也要活下去。不要死。 风速稳定，再给我两秒确认”
+
+--- 第 42 回合 ---
+
+🎭 Doctor:
+（沉稳地环视四周）
+Doctor轻声回应：“大家保持阵型，我来调配支援”
+
+🎭 Amiya:
+（沉稳地环视四周）
+Amiya说道：“博士，您还有许多事情需要处理，现在还不能休息哦。 只要我们团结起来，就没有跨不过的难关”
+
+🎭 Mephisto:
+（沉稳地环视四周）
+Mephisto说道：“浮士德，听我的乐章，让他们全部跪下。 感染者们，跟着节拍，将他们席卷”
+
+🎭 Faust:
+（沉稳地环视四周）
+Faust说道：“目标确认——浮士德狙击开始。 目标无掩体，准备下一发”
+
+--- 第 43 回合 ---
+
+🎭 Doctor:
+（沉稳地环视四周）
+Doctor轻声回应：“注意护卫线，同伴先把视线吸引过去”
+
+🎭 Amiya:
+（沉稳地环视四周）
+Amiya说道：“博士，能再见到您……真是太好了。 我在后方支援，同伴请小心”
+
+🎭 Mephisto:
+（沉稳地环视四周）
+Mephisto说道：“再见了，家……再见了，为我唱歌的人。 浮士德，让你的箭与我的乐章同奏”
+
+🎭 Faust:
+（沉稳地环视四周）
+Faust说道：“我希望哪怕是一个人，你也要活下去。不要死。 锁定角度，同伴别挡在射线里”
+
+--- 第 44 回合 ---
+
+🎭 Doctor:
+（沉稳地环视四周）
+Doctor轻声回应：“战场信息实时同步，任何异常立即汇报”
+
+🎭 Amiya:
+（沉稳地环视四周）
+Amiya说道：“博士，您还有许多事情需要处理，现在还不能休息哦。 源石技艺准备就绪，请接住这道护盾”
+
+🎭 Mephisto:
+（沉稳地环视四周）
+Mephisto说道：“浮士德，听我的乐章，让他们全部跪下。 听好了，同伴，要用恐惧占领他们的心”
+
+🎭 Faust:
+（沉稳地环视四周）
+Faust说道：“目标确认——浮士德狙击开始。 风速稳定，再给我两秒确认”
+
+--- 第 45 回合 ---
+
+🎭 Doctor:
+（沉稳地环视四周）
+Doctor轻声回应：“大家保持阵型，我来调配支援”
+
+🎭 Amiya:
+（沉稳地环视四周）
+Amiya说道：“博士，能再见到您……真是太好了。 只要我们团结起来，就没有跨不过的难关”
+
+🎭 Mephisto:
+（沉稳地环视四周）
+Mephisto说道：“再见了，家……再见了，为我唱歌的人。 感染者们，跟着节拍，将他们席卷”
+
+🎭 Faust:
+（沉稳地环视四周）
+Faust说道：“我希望哪怕是一个人，你也要活下去。不要死。 目标无掩体，准备下一发”
+
+--- 第 46 回合 ---
+
+🎭 Doctor:
+（沉稳地环视四周）
+Doctor轻声回应：“注意护卫线，同伴先把视线吸引过去”
+
+🎭 Amiya:
+（沉稳地环视四周）
+Amiya说道：“博士，您还有许多事情需要处理，现在还不能休息哦。 我在后方支援，同伴请小心”
+
+🎭 Mephisto:
+（沉稳地环视四周）
+Mephisto说道：“浮士德，听我的乐章，让他们全部跪下。 浮士德，让你的箭与我的乐章同奏”
+
+🎭 Faust:
+（沉稳地环视四周）
+Faust说道：“目标确认——浮士德狙击开始。 锁定角度，同伴别挡在射线里”
+
+--- 第 47 回合 ---
+
+🎭 Doctor:
+（沉稳地环视四周）
+Doctor轻声回应：“战场信息实时同步，任何异常立即汇报”
+
+🎭 Amiya:
+（沉稳地环视四周）
+Amiya说道：“博士，能再见到您……真是太好了。 源石技艺准备就绪，请接住这道护盾”
+
+🎭 Mephisto:
+（沉稳地环视四周）
+Mephisto说道：“再见了，家……再见了，为我唱歌的人。 听好了，同伴，要用恐惧占领他们的心”
+
+🎭 Faust:
+（沉稳地环视四周）
+Faust说道：“我希望哪怕是一个人，你也要活下去。不要死。 风速稳定，再给我两秒确认”
+
+--- 第 48 回合 ---
+
+🎭 Doctor:
+（沉稳地环视四周）
+Doctor轻声回应：“大家保持阵型，我来调配支援”
+
+🎭 Amiya:
+（沉稳地环视四周）
+Amiya说道：“博士，您还有许多事情需要处理，现在还不能休息哦。 只要我们团结起来，就没有跨不过的难关”
+
+🎭 Mephisto:
+（沉稳地环视四周）
+Mephisto说道：“浮士德，听我的乐章，让他们全部跪下。 感染者们，跟着节拍，将他们席卷”
+
+🎭 Faust:
+（沉稳地环视四周）
+Faust说道：“目标确认——浮士德狙击开始。 目标无掩体，准备下一发”
+
+--- 第 49 回合 ---
+
+🎭 Doctor:
+（沉稳地环视四周）
+Doctor轻声回应：“注意护卫线，同伴先把视线吸引过去”
+
+🎭 Amiya:
+（沉稳地环视四周）
+Amiya说道：“博士，能再见到您……真是太好了。 我在后方支援，同伴请小心”
+
+🎭 Mephisto:
+（沉稳地环视四周）
+Mephisto说道：“再见了，家……再见了，为我唱歌的人。 浮士德，让你的箭与我的乐章同奏”
+
+🎭 Faust:
+（沉稳地环视四周）
+Faust说道：“我希望哪怕是一个人，你也要活下去。不要死。 锁定角度，同伴别挡在射线里”
+
+--- 第 50 回合 ---
+
+🎭 Doctor:
+（沉稳地环视四周）
+Doctor轻声回应：“战场信息实时同步，任何异常立即汇报”
+
+🎭 Amiya:
+（沉稳地环视四周）
+Amiya说道：“博士，您还有许多事情需要处理，现在还不能休息哦。 源石技艺准备就绪，请接住这道护盾”
+
+🎭 Mephisto:
+（沉稳地环视四周）
+Mephisto说道：“浮士德，听我的乐章，让他们全部跪下。 听好了，同伴，要用恐惧占领他们的心”
+
+🎭 Faust:
+（沉稳地环视四周）
+Faust说道：“目标确认——浮士德狙击开始。 风速稳定，再给我两秒确认”
+
+--- 第 51 回合 ---
+
+🎭 Doctor:
+（沉稳地环视四周）
+Doctor轻声回应：“大家保持阵型，我来调配支援”
+
+🎭 Amiya:
+（沉稳地环视四周）
+Amiya说道：“博士，能再见到您……真是太好了。 只要我们团结起来，就没有跨不过的难关”
+
+🎭 Mephisto:
+（沉稳地环视四周）
+Mephisto说道：“再见了，家……再见了，为我唱歌的人。 感染者们，跟着节拍，将他们席卷”
+
+🎭 Faust:
+（沉稳地环视四周）
+Faust说道：“我希望哪怕是一个人，你也要活下去。不要死。 目标无掩体，准备下一发”
+
+--- 第 52 回合 ---
+
+🎭 Doctor:
+（沉稳地环视四周）
+Doctor轻声回应：“注意护卫线，同伴先把视线吸引过去”
+
+🎭 Amiya:
+（沉稳地环视四周）
+Amiya说道：“博士，您还有许多事情需要处理，现在还不能休息哦。 我在后方支援，同伴请小心”
+
+🎭 Mephisto:
+（沉稳地环视四周）
+Mephisto说道：“浮士德，听我的乐章，让他们全部跪下。 浮士德，让你的箭与我的乐章同奏”
+
+🎭 Faust:
+（沉稳地环视四周）
+Faust说道：“目标确认——浮士德狙击开始。 锁定角度，同伴别挡在射线里”
+
+--- 第 53 回合 ---
+
+🎭 Doctor:
+（沉稳地环视四周）
+Doctor轻声回应：“战场信息实时同步，任何异常立即汇报”
+
+🎭 Amiya:
+（沉稳地环视四周）
+Amiya说道：“博士，能再见到您……真是太好了。 源石技艺准备就绪，请接住这道护盾”
+
+🎭 Mephisto:
+（沉稳地环视四周）
+Mephisto说道：“再见了，家……再见了，为我唱歌的人。 听好了，同伴，要用恐惧占领他们的心”
+
+🎭 Faust:
+（沉稳地环视四周）
+Faust说道：“我希望哪怕是一个人，你也要活下去。不要死。 风速稳定，再给我两秒确认”
+
+--- 第 54 回合 ---
+
+🎭 Doctor:
+（沉稳地环视四周）
+Doctor轻声回应：“大家保持阵型，我来调配支援”
+
+🎭 Amiya:
+（沉稳地环视四周）
+Amiya说道：“博士，您还有许多事情需要处理，现在还不能休息哦。 只要我们团结起来，就没有跨不过的难关”
+
+🎭 Mephisto:
+（沉稳地环视四周）
+Mephisto说道：“浮士德，听我的乐章，让他们全部跪下。 感染者们，跟着节拍，将他们席卷”
+
+🎭 Faust:
+（沉稳地环视四周）
+Faust说道：“目标确认——浮士德狙击开始。 目标无掩体，准备下一发”
+
+--- 第 55 回合 ---
+
+🎭 Doctor:
+（沉稳地环视四周）
+Doctor轻声回应：“注意护卫线，同伴先把视线吸引过去”
+
+🎭 Amiya:
+（沉稳地环视四周）
+Amiya说道：“博士，能再见到您……真是太好了。 我在后方支援，同伴请小心”
+
+🎭 Mephisto:
+（沉稳地环视四周）
+Mephisto说道：“再见了，家……再见了，为我唱歌的人。 浮士德，让你的箭与我的乐章同奏”
+
+🎭 Faust:
+（沉稳地环视四周）
+Faust说道：“我希望哪怕是一个人，你也要活下去。不要死。 锁定角度，同伴别挡在射线里”
+
+--- 第 56 回合 ---
+
+🎭 Doctor:
+（沉稳地环视四周）
+Doctor轻声回应：“战场信息实时同步，任何异常立即汇报”
+
+🎭 Amiya:
+（沉稳地环视四周）
+Amiya说道：“博士，您还有许多事情需要处理，现在还不能休息哦。 源石技艺准备就绪，请接住这道护盾”
+
+🎭 Mephisto:
+（沉稳地环视四周）
+Mephisto说道：“浮士德，听我的乐章，让他们全部跪下。 听好了，同伴，要用恐惧占领他们的心”
+
+🎭 Faust:
+（沉稳地环视四周）
+Faust说道：“目标确认——浮士德狙击开始。 风速稳定，再给我两秒确认”
+
+--- 第 57 回合 ---
+
+🎭 Doctor:
+（沉稳地环视四周）
+Doctor轻声回应：“大家保持阵型，我来调配支援”
+
+🎭 Amiya:
+（沉稳地环视四周）
+Amiya说道：“博士，能再见到您……真是太好了。 只要我们团结起来，就没有跨不过的难关”
+
+🎭 Mephisto:
+（沉稳地环视四周）
+Mephisto说道：“再见了，家……再见了，为我唱歌的人。 感染者们，跟着节拍，将他们席卷”
+
+🎭 Faust:
+（沉稳地环视四周）
+Faust说道：“我希望哪怕是一个人，你也要活下去。不要死。 目标无掩体，准备下一发”
+
+--- 第 58 回合 ---
+
+🎭 Doctor:
+（沉稳地环视四周）
+Doctor轻声回应：“注意护卫线，同伴先把视线吸引过去”
+
+🎭 Amiya:
+（沉稳地环视四周）
+Amiya说道：“博士，您还有许多事情需要处理，现在还不能休息哦。 我在后方支援，同伴请小心”
+
+🎭 Mephisto:
+（沉稳地环视四周）
+Mephisto说道：“浮士德，听我的乐章，让他们全部跪下。 浮士德，让你的箭与我的乐章同奏”
+
+🎭 Faust:
+（沉稳地环视四周）
+Faust说道：“目标确认——浮士德狙击开始。 锁定角度，同伴别挡在射线里”
+
+--- 第 59 回合 ---
+
+🎭 Doctor:
+（沉稳地环视四周）
+Doctor轻声回应：“战场信息实时同步，任何异常立即汇报”
+
+🎭 Amiya:
+（沉稳地环视四周）
+Amiya说道：“博士，能再见到您……真是太好了。 源石技艺准备就绪，请接住这道护盾”
+
+🎭 Mephisto:
+（沉稳地环视四周）
+Mephisto说道：“再见了，家……再见了，为我唱歌的人。 听好了，同伴，要用恐惧占领他们的心”
+
+🎭 Faust:
+（沉稳地环视四周）
+Faust说道：“我希望哪怕是一个人，你也要活下去。不要死。 风速稳定，再给我两秒确认”
+
+--- 第 60 回合 ---
+
+🎭 Doctor:
+（沉稳地环视四周）
+Doctor轻声回应：“大家保持阵型，我来调配支援”
+
+🎭 Amiya:
+（沉稳地环视四周）
+Amiya说道：“博士，您还有许多事情需要处理，现在还不能休息哦。 只要我们团结起来，就没有跨不过的难关”
+
+🎭 Mephisto:
+（沉稳地环视四周）
+Mephisto说道：“浮士德，听我的乐章，让他们全部跪下。 感染者们，跟着节拍，将他们席卷”
+
+🎭 Faust:
+（沉稳地环视四周）
+Faust说道：“目标确认——浮士德狙击开始。 目标无掩体，准备下一发”
+
+--- 第 61 回合 ---
+
+🎭 Doctor:
+（沉稳地环视四周）
+Doctor轻声回应：“注意护卫线，同伴先把视线吸引过去”
+
+🎭 Amiya:
+（沉稳地环视四周）
+Amiya说道：“博士，能再见到您……真是太好了。 我在后方支援，同伴请小心”
+
+🎭 Mephisto:
+（沉稳地环视四周）
+Mephisto说道：“再见了，家……再见了，为我唱歌的人。 浮士德，让你的箭与我的乐章同奏”
+
+🎭 Faust:
+（沉稳地环视四周）
+Faust说道：“我希望哪怕是一个人，你也要活下去。不要死。 锁定角度，同伴别挡在射线里”
+
+--- 第 62 回合 ---
+
+🎭 Doctor:
+（沉稳地环视四周）
+Doctor轻声回应：“战场信息实时同步，任何异常立即汇报”
+
+🎭 Amiya:
+（沉稳地环视四周）
+Amiya说道：“博士，您还有许多事情需要处理，现在还不能休息哦。 源石技艺准备就绪，请接住这道护盾”
+
+🎭 Mephisto:
+（沉稳地环视四周）
+Mephisto说道：“浮士德，听我的乐章，让他们全部跪下。 听好了，同伴，要用恐惧占领他们的心”
+
+🎭 Faust:
+（沉稳地环视四周）
+Faust说道：“目标确认——浮士德狙击开始。 风速稳定，再给我两秒确认”
+
+--- 第 63 回合 ---
+
+🎭 Doctor:
+（沉稳地环视四周）
+Doctor轻声回应：“大家保持阵型，我来调配支援”
+
+🎭 Amiya:
+（沉稳地环视四周）
+Amiya说道：“博士，能再见到您……真是太好了。 只要我们团结起来，就没有跨不过的难关”
+
+🎭 Mephisto:
+（沉稳地环视四周）
+Mephisto说道：“再见了，家……再见了，为我唱歌的人。 感染者们，跟着节拍，将他们席卷”
+
+🎭 Faust:
+（沉稳地环视四周）
+Faust说道：“我希望哪怕是一个人，你也要活下去。不要死。 目标无掩体，准备下一发”
+
+--- 第 64 回合 ---
+
+🎭 Doctor:
+（沉稳地环视四周）
+Doctor轻声回应：“注意护卫线，同伴先把视线吸引过去”
+
+🎭 Amiya:
+（沉稳地环视四周）
+Amiya说道：“博士，您还有许多事情需要处理，现在还不能休息哦。 我在后方支援，同伴请小心”
+
+🎭 Mephisto:
+（沉稳地环视四周）
+Mephisto说道：“浮士德，听我的乐章，让他们全部跪下。 浮士德，让你的箭与我的乐章同奏”
+
+🎭 Faust:
+（沉稳地环视四周）
+Faust说道：“目标确认——浮士德狙击开始。 锁定角度，同伴别挡在射线里”
+
+--- 第 65 回合 ---
+
+🎭 Doctor:
+（沉稳地环视四周）
+Doctor轻声回应：“战场信息实时同步，任何异常立即汇报”
+
+🎭 Amiya:
+（沉稳地环视四周）
+Amiya说道：“博士，能再见到您……真是太好了。 源石技艺准备就绪，请接住这道护盾”
+
+🎭 Mephisto:
+（沉稳地环视四周）
+Mephisto说道：“再见了，家……再见了，为我唱歌的人。 听好了，同伴，要用恐惧占领他们的心”
+
+🎭 Faust:
+（沉稳地环视四周）
+Faust说道：“我希望哪怕是一个人，你也要活下去。不要死。 风速稳定，再给我两秒确认”
+
+--- 第 66 回合 ---
+
+🎭 Doctor:
+（沉稳地环视四周）
+Doctor轻声回应：“大家保持阵型，我来调配支援”
+
+🎭 Amiya:
+（沉稳地环视四周）
+Amiya说道：“博士，您还有许多事情需要处理，现在还不能休息哦。 只要我们团结起来，就没有跨不过的难关”
+
+🎭 Mephisto:
+（沉稳地环视四周）
+Mephisto说道：“浮士德，听我的乐章，让他们全部跪下。 感染者们，跟着节拍，将他们席卷”
+
+🎭 Faust:
+（沉稳地环视四周）
+Faust说道：“目标确认——浮士德狙击开始。 目标无掩体，准备下一发”
+
+--- 第 67 回合 ---
+
+🎭 Doctor:
+（沉稳地环视四周）
+Doctor轻声回应：“注意护卫线，同伴先把视线吸引过去”
+
+🎭 Amiya:
+（沉稳地环视四周）
+Amiya说道：“博士，能再见到您……真是太好了。 我在后方支援，同伴请小心”
+
+🎭 Mephisto:
+（沉稳地环视四周）
+Mephisto说道：“再见了，家……再见了，为我唱歌的人。 浮士德，让你的箭与我的乐章同奏”
+
+🎭 Faust:
+（沉稳地环视四周）
+Faust说道：“我希望哪怕是一个人，你也要活下去。不要死。 锁定角度，同伴别挡在射线里”
+
+--- 第 68 回合 ---
+
+🎭 Doctor:
+（沉稳地环视四周）
+Doctor轻声回应：“战场信息实时同步，任何异常立即汇报”
+
+🎭 Amiya:
+（沉稳地环视四周）
+Amiya说道：“博士，您还有许多事情需要处理，现在还不能休息哦。 源石技艺准备就绪，请接住这道护盾”
+
+🎭 Mephisto:
+（沉稳地环视四周）
+Mephisto说道：“浮士德，听我的乐章，让他们全部跪下。 听好了，同伴，要用恐惧占领他们的心”
+
+🎭 Faust:
+（沉稳地环视四周）
+Faust说道：“目标确认——浮士德狙击开始。 风速稳定，再给我两秒确认”
+
+--- 第 69 回合 ---
+
+🎭 Doctor:
+（沉稳地环视四周）
+Doctor轻声回应：“大家保持阵型，我来调配支援”
+
+🎭 Amiya:
+（沉稳地环视四周）
+Amiya说道：“博士，能再见到您……真是太好了。 只要我们团结起来，就没有跨不过的难关”
+
+🎭 Mephisto:
+（沉稳地环视四周）
+Mephisto说道：“再见了，家……再见了，为我唱歌的人。 感染者们，跟着节拍，将他们席卷”
+
+🎭 Faust:
+（沉稳地环视四周）
+Faust说道：“我希望哪怕是一个人，你也要活下去。不要死。 目标无掩体，准备下一发”
+
+--- 第 70 回合 ---
+
+🎭 Doctor:
+（沉稳地环视四周）
+Doctor轻声回应：“注意护卫线，同伴先把视线吸引过去”
+
+🎭 Amiya:
+（沉稳地环视四周）
+Amiya说道：“博士，您还有许多事情需要处理，现在还不能休息哦。 我在后方支援，同伴请小心”
+
+🎭 Mephisto:
+（沉稳地环视四周）
+Mephisto说道：“浮士德，听我的乐章，让他们全部跪下。 浮士德，让你的箭与我的乐章同奏”
+
+🎭 Faust:
+（沉稳地环视四周）
+Faust说道：“目标确认——浮士德狙击开始。 锁定角度，同伴别挡在射线里”
+
+--- 第 71 回合 ---
+
+🎭 Doctor:
+（沉稳地环视四周）
+Doctor轻声回应：“战场信息实时同步，任何异常立即汇报”
+
+🎭 Amiya:
+（沉稳地环视四周）
+Amiya说道：“博士，能再见到您……真是太好了。 源石技艺准备就绪，请接住这道护盾”
+
+🎭 Mephisto:
+（沉稳地环视四周）
+Mephisto说道：“再见了，家……再见了，为我唱歌的人。 听好了，同伴，要用恐惧占领他们的心”
+
+🎭 Faust:
+（沉稳地环视四周）
+Faust说道：“我希望哪怕是一个人，你也要活下去。不要死。 风速稳定，再给我两秒确认”
+
+--- 第 72 回合 ---
+
+🎭 Doctor:
+（沉稳地环视四周）
+Doctor轻声回应：“大家保持阵型，我来调配支援”
+
+🎭 Amiya:
+（沉稳地环视四周）
+Amiya说道：“博士，您还有许多事情需要处理，现在还不能休息哦。 只要我们团结起来，就没有跨不过的难关”
+
+🎭 Mephisto:
+（沉稳地环视四周）
+Mephisto说道：“浮士德，听我的乐章，让他们全部跪下。 感染者们，跟着节拍，将他们席卷”
+
+🎭 Faust:
+（沉稳地环视四周）
+Faust说道：“目标确认——浮士德狙击开始。 目标无掩体，准备下一发”
+
+--- 第 73 回合 ---
+
+🎭 Doctor:
+（沉稳地环视四周）
+Doctor轻声回应：“注意护卫线，同伴先把视线吸引过去”
+
+🎭 Amiya:
+（沉稳地环视四周）
+Amiya说道：“博士，能再见到您……真是太好了。 我在后方支援，同伴请小心”
+
+🎭 Mephisto:
+（沉稳地环视四周）
+Mephisto说道：“再见了，家……再见了，为我唱歌的人。 浮士德，让你的箭与我的乐章同奏”
+
+🎭 Faust:
+（沉稳地环视四周）
+Faust说道：“我希望哪怕是一个人，你也要活下去。不要死。 锁定角度，同伴别挡在射线里”
+
+--- 第 74 回合 ---
+
+🎭 Doctor:
+（沉稳地环视四周）
+Doctor轻声回应：“战场信息实时同步，任何异常立即汇报”
+
+🎭 Amiya:
+（沉稳地环视四周）
+Amiya说道：“博士，您还有许多事情需要处理，现在还不能休息哦。 源石技艺准备就绪，请接住这道护盾”
+
+🎭 Mephisto:
+（沉稳地环视四周）
+Mephisto说道：“浮士德，听我的乐章，让他们全部跪下。 听好了，同伴，要用恐惧占领他们的心”
+
+🎭 Faust:
+（沉稳地环视四周）
+Faust说道：“目标确认——浮士德狙击开始。 风速稳定，再给我两秒确认”
+
+--- 第 75 回合 ---
+
+🎭 Doctor:
+（沉稳地环视四周）
+Doctor轻声回应：“大家保持阵型，我来调配支援”
+
+🎭 Amiya:
+（沉稳地环视四周）
+Amiya说道：“博士，能再见到您……真是太好了。 只要我们团结起来，就没有跨不过的难关”
+
+🎭 Mephisto:
+（沉稳地环视四周）
+Mephisto说道：“再见了，家……再见了，为我唱歌的人。 感染者们，跟着节拍，将他们席卷”
+
+🎭 Faust:
+（沉稳地环视四周）
+Faust说道：“我希望哪怕是一个人，你也要活下去。不要死。 目标无掩体，准备下一发”
+
+--- 第 76 回合 ---
+
+🎭 Doctor:
+（沉稳地环视四周）
+Doctor轻声回应：“注意护卫线，同伴先把视线吸引过去”
+
+🎭 Amiya:
+（沉稳地环视四周）
+Amiya说道：“博士，您还有许多事情需要处理，现在还不能休息哦。 我在后方支援，同伴请小心”
+
+🎭 Mephisto:
+（沉稳地环视四周）
+Mephisto说道：“浮士德，听我的乐章，让他们全部跪下。 浮士德，让你的箭与我的乐章同奏”
+
+🎭 Faust:
+（沉稳地环视四周）
+Faust说道：“目标确认——浮士德狙击开始。 锁定角度，同伴别挡在射线里”
+
+--- 第 77 回合 ---
+
+🎭 Doctor:
+（沉稳地环视四周）
+Doctor轻声回应：“战场信息实时同步，任何异常立即汇报”
+
+🎭 Amiya:
+（沉稳地环视四周）
+Amiya说道：“博士，能再见到您……真是太好了。 源石技艺准备就绪，请接住这道护盾”
+
+🎭 Mephisto:
+（沉稳地环视四周）
+Mephisto说道：“再见了，家……再见了，为我唱歌的人。 听好了，同伴，要用恐惧占领他们的心”
+
+🎭 Faust:
+（沉稳地环视四周）
+Faust说道：“我希望哪怕是一个人，你也要活下去。不要死。 风速稳定，再给我两秒确认”
+
+--- 第 78 回合 ---
+
+🎭 Doctor:
+（沉稳地环视四周）
+Doctor轻声回应：“大家保持阵型，我来调配支援”
+
+🎭 Amiya:
+（沉稳地环视四周）
+Amiya说道：“博士，您还有许多事情需要处理，现在还不能休息哦。 只要我们团结起来，就没有跨不过的难关”
+
+🎭 Mephisto:
+（沉稳地环视四周）
+Mephisto说道：“浮士德，听我的乐章，让他们全部跪下。 感染者们，跟着节拍，将他们席卷”
+
+🎭 Faust:
+（沉稳地环视四周）
+Faust说道：“目标确认——浮士德狙击开始。 目标无掩体，准备下一发”
+
+--- 第 79 回合 ---
+
+🎭 Doctor:
+（沉稳地环视四周）
+Doctor轻声回应：“注意护卫线，同伴先把视线吸引过去”
+
+🎭 Amiya:
+（沉稳地环视四周）
+Amiya说道：“博士，能再见到您……真是太好了。 我在后方支援，同伴请小心”
+
+🎭 Mephisto:
+（沉稳地环视四周）
+Mephisto说道：“再见了，家……再见了，为我唱歌的人。 浮士德，让你的箭与我的乐章同奏”
+
+🎭 Faust:
+（沉稳地环视四周）
+Faust说道：“我希望哪怕是一个人，你也要活下去。不要死。 锁定角度，同伴别挡在射线里”
+
+--- 第 80 回合 ---
+
+🎭 Doctor:
+（沉稳地环视四周）
+Doctor轻声回应：“战场信息实时同步，任何异常立即汇报”
+
+🎭 Amiya:
+（沉稳地环视四周）
+Amiya说道：“博士，您还有许多事情需要处理，现在还不能休息哦。 源石技艺准备就绪，请接住这道护盾”
+
+🎭 Mephisto:
+（沉稳地环视四周）
+Mephisto说道：“浮士德，听我的乐章，让他们全部跪下。 听好了，同伴，要用恐惧占领他们的心”
+
+🎭 Faust:
+（沉稳地环视四周）
+Faust说道：“目标确认——浮士德狙击开始。 风速稳定，再给我两秒确认”
+
+--- 第 81 回合 ---
+
+🎭 Doctor:
+（沉稳地环视四周）
+Doctor轻声回应：“大家保持阵型，我来调配支援”
+
+🎭 Amiya:
+（沉稳地环视四周）
+Amiya说道：“博士，能再见到您……真是太好了。 只要我们团结起来，就没有跨不过的难关”
+
+🎭 Mephisto:
+（沉稳地环视四周）
+Mephisto说道：“再见了，家……再见了，为我唱歌的人。 感染者们，跟着节拍，将他们席卷”
+
+🎭 Faust:
+（沉稳地环视四周）
+Faust说道：“我希望哪怕是一个人，你也要活下去。不要死。 目标无掩体，准备下一发”
+
+--- 第 82 回合 ---
+
+🎭 Doctor:
+（沉稳地环视四周）
+Doctor轻声回应：“注意护卫线，同伴先把视线吸引过去”
+
+🎭 Amiya:
+（沉稳地环视四周）
+Amiya说道：“博士，您还有许多事情需要处理，现在还不能休息哦。 我在后方支援，同伴请小心”
+
+🎭 Mephisto:
+（沉稳地环视四周）
+Mephisto说道：“浮士德，听我的乐章，让他们全部跪下。 浮士德，让你的箭与我的乐章同奏”
+
+🎭 Faust:
+（沉稳地环视四周）
+Faust说道：“目标确认——浮士德狙击开始。 锁定角度，同伴别挡在射线里”
+
+--- 第 83 回合 ---
+
+🎭 Doctor:
+（沉稳地环视四周）
+Doctor轻声回应：“战场信息实时同步，任何异常立即汇报”
+
+🎭 Amiya:
+（沉稳地环视四周）
+Amiya说道：“博士，能再见到您……真是太好了。 源石技艺准备就绪，请接住这道护盾”
+
+🎭 Mephisto:
+（沉稳地环视四周）
+Mephisto说道：“再见了，家……再见了，为我唱歌的人。 听好了，同伴，要用恐惧占领他们的心”
+
+🎭 Faust:
+（沉稳地环视四周）
+Faust说道：“我希望哪怕是一个人，你也要活下去。不要死。 风速稳定，再给我两秒确认”
+
+--- 第 84 回合 ---
+
+🎭 Doctor:
+（沉稳地环视四周）
+Doctor轻声回应：“大家保持阵型，我来调配支援”
+
+🎭 Amiya:
+（沉稳地环视四周）
+Amiya说道：“博士，您还有许多事情需要处理，现在还不能休息哦。 只要我们团结起来，就没有跨不过的难关”
+
+🎭 Mephisto:
+（沉稳地环视四周）
+Mephisto说道：“浮士德，听我的乐章，让他们全部跪下。 感染者们，跟着节拍，将他们席卷”
+
+🎭 Faust:
+（沉稳地环视四周）
+Faust说道：“目标确认——浮士德狙击开始。 目标无掩体，准备下一发”
+
+--- 第 85 回合 ---
+
+🎭 Doctor:
+（沉稳地环视四周）
+Doctor轻声回应：“注意护卫线，同伴先把视线吸引过去”
+
+🎭 Amiya:
+（沉稳地环视四周）
+Amiya说道：“博士，能再见到您……真是太好了。 我在后方支援，同伴请小心”
+
+🎭 Mephisto:
+（沉稳地环视四周）
+Mephisto说道：“再见了，家……再见了，为我唱歌的人。 浮士德，让你的箭与我的乐章同奏”
+
+🎭 Faust:
+（沉稳地环视四周）
+Faust说道：“我希望哪怕是一个人，你也要活下去。不要死。 锁定角度，同伴别挡在射线里”
+
+--- 第 86 回合 ---
+
+🎭 Doctor:
+（沉稳地环视四周）
+Doctor轻声回应：“战场信息实时同步，任何异常立即汇报”
+
+🎭 Amiya:
+（沉稳地环视四周）
+Amiya说道：“博士，您还有许多事情需要处理，现在还不能休息哦。 源石技艺准备就绪，请接住这道护盾”
+
+🎭 Mephisto:
+（沉稳地环视四周）
+Mephisto说道：“浮士德，听我的乐章，让他们全部跪下。 听好了，同伴，要用恐惧占领他们的心”
+
+🎭 Faust:
+（沉稳地环视四周）
+Faust说道：“目标确认——浮士德狙击开始。 风速稳定，再给我两秒确认”
+
+--- 第 87 回合 ---
+
+🎭 Doctor:
+（沉稳地环视四周）
+Doctor轻声回应：“大家保持阵型，我来调配支援”
+
+🎭 Amiya:
+（沉稳地环视四周）
+Amiya说道：“博士，能再见到您……真是太好了。 只要我们团结起来，就没有跨不过的难关”
+
+🎭 Mephisto:
+（沉稳地环视四周）
+Mephisto说道：“再见了，家……再见了，为我唱歌的人。 感染者们，跟着节拍，将他们席卷”
+
+🎭 Faust:
+（沉稳地环视四周）
+Faust说道：“我希望哪怕是一个人，你也要活下去。不要死。 目标无掩体，准备下一发”
+
+--- 第 88 回合 ---
+
+🎭 Doctor:
+（沉稳地环视四周）
+Doctor轻声回应：“注意护卫线，同伴先把视线吸引过去”
+
+🎭 Amiya:
+（沉稳地环视四周）
+Amiya说道：“博士，您还有许多事情需要处理，现在还不能休息哦。 我在后方支援，同伴请小心”
+
+🎭 Mephisto:
+（沉稳地环视四周）
+Mephisto说道：“浮士德，听我的乐章，让他们全部跪下。 浮士德，让你的箭与我的乐章同奏”
+
+🎭 Faust:
+（沉稳地环视四周）
+Faust说道：“目标确认——浮士德狙击开始。 锁定角度，同伴别挡在射线里”
+
+--- 第 89 回合 ---
+
+🎭 Doctor:
+（沉稳地环视四周）
+Doctor轻声回应：“战场信息实时同步，任何异常立即汇报”
+
+🎭 Amiya:
+（沉稳地环视四周）
+Amiya说道：“博士，能再见到您……真是太好了。 源石技艺准备就绪，请接住这道护盾”
+
+🎭 Mephisto:
+（沉稳地环视四周）
+Mephisto说道：“再见了，家……再见了，为我唱歌的人。 听好了，同伴，要用恐惧占领他们的心”
+
+🎭 Faust:
+（沉稳地环视四周）
+Faust说道：“我希望哪怕是一个人，你也要活下去。不要死。 风速稳定，再给我两秒确认”
+
+--- 第 90 回合 ---
+
+🎭 Doctor:
+（沉稳地环视四周）
+Doctor轻声回应：“大家保持阵型，我来调配支援”
+
+🎭 Amiya:
+（沉稳地环视四周）
+Amiya说道：“博士，您还有许多事情需要处理，现在还不能休息哦。 只要我们团结起来，就没有跨不过的难关”
+
+🎭 Mephisto:
+（沉稳地环视四周）
+Mephisto说道：“浮士德，听我的乐章，让他们全部跪下。 感染者们，跟着节拍，将他们席卷”
+
+🎭 Faust:
+（沉稳地环视四周）
+Faust说道：“目标确认——浮士德狙击开始。 目标无掩体，准备下一发”
+
+--- 第 91 回合 ---
+
+🎭 Doctor:
+（沉稳地环视四周）
+Doctor轻声回应：“注意护卫线，同伴先把视线吸引过去”
+
+🎭 Amiya:
+（沉稳地环视四周）
+Amiya说道：“博士，能再见到您……真是太好了。 我在后方支援，同伴请小心”
+
+🎭 Mephisto:
+（沉稳地环视四周）
+Mephisto说道：“再见了，家……再见了，为我唱歌的人。 浮士德，让你的箭与我的乐章同奏”
+
+🎭 Faust:
+（沉稳地环视四周）
+Faust说道：“我希望哪怕是一个人，你也要活下去。不要死。 锁定角度，同伴别挡在射线里”
+
+--- 第 92 回合 ---
+
+🎭 Doctor:
+（沉稳地环视四周）
+Doctor轻声回应：“战场信息实时同步，任何异常立即汇报”
+
+🎭 Amiya:
+（沉稳地环视四周）
+Amiya说道：“博士，您还有许多事情需要处理，现在还不能休息哦。 源石技艺准备就绪，请接住这道护盾”
+
+🎭 Mephisto:
+（沉稳地环视四周）
+Mephisto说道：“浮士德，听我的乐章，让他们全部跪下。 听好了，同伴，要用恐惧占领他们的心”
+
+🎭 Faust:
+（沉稳地环视四周）
+Faust说道：“目标确认——浮士德狙击开始。 风速稳定，再给我两秒确认”
+
+--- 第 93 回合 ---
+
+🎭 Doctor:
+（沉稳地环视四周）
+Doctor轻声回应：“大家保持阵型，我来调配支援”
+
+🎭 Amiya:
+（沉稳地环视四周）
+Amiya说道：“博士，能再见到您……真是太好了。 只要我们团结起来，就没有跨不过的难关”
+
+🎭 Mephisto:
+（沉稳地环视四周）
+Mephisto说道：“再见了，家……再见了，为我唱歌的人。 感染者们，跟着节拍，将他们席卷”
+
+🎭 Faust:
+（沉稳地环视四周）
+Faust说道：“我希望哪怕是一个人，你也要活下去。不要死。 目标无掩体，准备下一发”
+
+--- 第 94 回合 ---
+
+🎭 Doctor:
+（沉稳地环视四周）
+Doctor轻声回应：“注意护卫线，同伴先把视线吸引过去”
+
+🎭 Amiya:
+（沉稳地环视四周）
+Amiya说道：“博士，您还有许多事情需要处理，现在还不能休息哦。 我在后方支援，同伴请小心”
+
+🎭 Mephisto:
+（沉稳地环视四周）
+Mephisto说道：“浮士德，听我的乐章，让他们全部跪下。 浮士德，让你的箭与我的乐章同奏”
+
+🎭 Faust:
+（沉稳地环视四周）
+Faust说道：“目标确认——浮士德狙击开始。 锁定角度，同伴别挡在射线里”
+
+--- 第 95 回合 ---
+
+🎭 Doctor:
+（沉稳地环视四周）
+Doctor轻声回应：“战场信息实时同步，任何异常立即汇报”
+
+🎭 Amiya:
+（沉稳地环视四周）
+Amiya说道：“博士，能再见到您……真是太好了。 源石技艺准备就绪，请接住这道护盾”
+
+🎭 Mephisto:
+（沉稳地环视四周）
+Mephisto说道：“再见了，家……再见了，为我唱歌的人。 听好了，同伴，要用恐惧占领他们的心”
+
+🎭 Faust:
+（沉稳地环视四周）
+Faust说道：“我希望哪怕是一个人，你也要活下去。不要死。 风速稳定，再给我两秒确认”
+
+--- 第 96 回合 ---
+
+🎭 Doctor:
+（沉稳地环视四周）
+Doctor轻声回应：“大家保持阵型，我来调配支援”
+
+🎭 Amiya:
+（沉稳地环视四周）
+Amiya说道：“博士，您还有许多事情需要处理，现在还不能休息哦。 只要我们团结起来，就没有跨不过的难关”
+
+🎭 Mephisto:
+（沉稳地环视四周）
+Mephisto说道：“浮士德，听我的乐章，让他们全部跪下。 感染者们，跟着节拍，将他们席卷”
+
+🎭 Faust:
+（沉稳地环视四周）
+Faust说道：“目标确认——浮士德狙击开始。 目标无掩体，准备下一发”
+
+--- 第 97 回合 ---
+
+🎭 Doctor:
+（沉稳地环视四周）
+Doctor轻声回应：“注意护卫线，同伴先把视线吸引过去”
+
+🎭 Amiya:
+（沉稳地环视四周）
+Amiya说道：“博士，能再见到您……真是太好了。 我在后方支援，同伴请小心”
+
+🎭 Mephisto:
+（沉稳地环视四周）
+Mephisto说道：“再见了，家……再见了，为我唱歌的人。 浮士德，让你的箭与我的乐章同奏”
+
+🎭 Faust:
+（沉稳地环视四周）
+Faust说道：“我希望哪怕是一个人，你也要活下去。不要死。 锁定角度，同伴别挡在射线里”
+
+--- 第 98 回合 ---
+
+🎭 Doctor:
+（沉稳地环视四周）
+Doctor轻声回应：“战场信息实时同步，任何异常立即汇报”
+
+🎭 Amiya:
+（沉稳地环视四周）
+Amiya说道：“博士，您还有许多事情需要处理，现在还不能休息哦。 源石技艺准备就绪，请接住这道护盾”
+
+🎭 Mephisto:
+（沉稳地环视四周）
+Mephisto说道：“浮士德，听我的乐章，让他们全部跪下。 听好了，同伴，要用恐惧占领他们的心”
+
+🎭 Faust:
+（沉稳地环视四周）
+Faust说道：“目标确认——浮士德狙击开始。 风速稳定，再给我两秒确认”
+
+--- 第 99 回合 ---
+
+🎭 Doctor:
+（沉稳地环视四周）
+Doctor轻声回应：“大家保持阵型，我来调配支援”
+
+🎭 Amiya:
+（沉稳地环视四周）
+Amiya说道：“博士，能再见到您……真是太好了。 只要我们团结起来，就没有跨不过的难关”
+
+🎭 Mephisto:
+（沉稳地环视四周）
+Mephisto说道：“再见了，家……再见了，为我唱歌的人。 感染者们，跟着节拍，将他们席卷”
+
+🎭 Faust:
+（沉稳地环视四周）
+Faust说道：“我希望哪怕是一个人，你也要活下去。不要死。 目标无掩体，准备下一发”
+
+--- 第 100 回合 ---
+
+🎭 Doctor:
+（沉稳地环视四周）
+Doctor轻声回应：“注意护卫线，同伴先把视线吸引过去”
+
+🎭 Amiya:
+（沉稳地环视四周）
+Amiya说道：“博士，您还有许多事情需要处理，现在还不能休息哦。 我在后方支援，同伴请小心”
+
+🎭 Mephisto:
+（沉稳地环视四周）
+Mephisto说道：“浮士德，听我的乐章，让他们全部跪下。 浮士德，让你的箭与我的乐章同奏”
+
+🎭 Faust:
+（沉稳地环视四周）
+Faust说道：“目标确认——浮士德狙击开始。 锁定角度，同伴别挡在射线里”
+2025-10-13 13:00:30,502 - EnhancedApplicationBootstrap - INFO - Game ended: 已达到最大回合 100
+
+--- 第 101 回合 ---
+
+🎭 Doctor:
+（沉稳地环视四周）
+Doctor轻声回应：“战场信息实时同步，任何异常立即汇报”
+
+🎭 Amiya:
+（沉稳地环视四周）
+Amiya说道：“博士，能再见到您……真是太好了。 源石技艺准备就绪，请接住这道护盾”
+
+🎭 Mephisto:
+（沉稳地环视四周）
+Mephisto说道：“再见了，家……再见了，为我唱歌的人。 听好了，同伴，要用恐惧占领他们的心”
+
+🎭 Faust:
+（沉稳地环视四周）
+Faust说道：“我希望哪怕是一个人，你也要活下去。不要死。 风速稳定，再给我两秒确认”
+2025-10-13 13:00:30,502 - EnhancedApplicationBootstrap - INFO - 游戏运行完成
+2025-10-13 13:00:30,503 - __main__ - INFO - 应用程序运行完成
+2025-10-13 13:00:30,503 - EnhancedApplicationBootstrap - INFO - 开始关闭应用...
+2025-10-13 13:00:30,503 - EnhancedApplicationBootstrap - INFO - 开始优雅关闭...
+2025-10-13 13:00:41,154 - EnhancedApplicationBootstrap - INFO - 资源清理完成
+2025-10-13 13:00:41,155 - EnhancedApplicationBootstrap - INFO - 优雅关闭完成
+2025-10-13 13:00:41,155 - EnhancedApplicationBootstrap - INFO - 资源清理完成
+2025-10-13 13:00:41,155 - EnhancedApplicationBootstrap - INFO - 应用关闭完成
+
+================================================================================
+程序已正常结束
+================================================================================

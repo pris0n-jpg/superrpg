@@ -1,0 +1,534 @@
+/* 代码高亮样式 - 基于GitHub主题 */
+
+/* 亮色主题 */
+:root {
+    --hljs-bg: #ffffff;
+    --hljs-fg: #24292e;
+    --hljs-comment: #6a737d;
+    --hljs-keyword: #d73a49;
+    --hljs-string: #032f62;
+    --hljs-number: #005cc5;
+    --hljs-function: #6f42c1;
+    --hljs-variable: #e36209;
+    --hljs-class: #6f42c1;
+    --hljs-operator: #d73a49;
+    --hljs-punctuation: #24292e;
+    --hljs-tag: #22863a;
+    --hljs-attribute: #6f42c1;
+    --hljs-property: #6f42c1;
+    --hljs-builtin: #e36209;
+    --hljs-regex: #22863a;
+    --hljs-important: #d73a49;
+    --hljs-error: #cb2431;
+    --hljs-warning: #f66a0a;
+    --hljs-info: #0366d6;
+    --hljs-success: #28a745;
+}
+
+/* 暗色主题 */
+[data-theme="dark"] {
+    --hljs-bg: #1e1e1e;
+    --hljs-fg: #d4d4d4;
+    --hljs-comment: #6a9955;
+    --hljs-keyword: #569cd6;
+    --hljs-string: #ce9178;
+    --hljs-number: #b5cea8;
+    --hljs-function: #dcdcaa;
+    --hljs-variable: #9cdcfe;
+    --hljs-class: #4ec9b0;
+    --hljs-operator: #d4d4d4;
+    --hljs-punctuation: #d4d4d4;
+    --hljs-tag: #569cd6;
+    --hljs-attribute: #92c5f8;
+    --hljs-property: #9cdcfe;
+    --hljs-builtin: #dcdcaa;
+    --hljs-regex: #d16969;
+    --hljs-important: #c586c0;
+    --hljs-error: #f44747;
+    --hljs-warning: #ffcc02;
+    --hljs-info: #75beff;
+    --hljs-success: #4ec9b0;
+}
+
+/* 基础代码块样式 */
+pre {
+    background-color: var(--hljs-bg) !important;
+    color: var(--hljs-fg) !important;
+    border: 1px solid var(--border-color) !important;
+    border-radius: var(--radius-md) !important;
+    padding: var(--spacing-md) !important;
+    overflow-x: auto !important;
+    margin-bottom: var(--spacing-md) !important;
+    font-size: var(--font-size-sm) !important;
+    line-height: 1.5 !important;
+    position: relative;
+}
+
+/* 行号样式 */
+pre.line-numbers {
+    padding-left: 3.5em !important;
+    counter-reset: linenumber;
+}
+
+pre.line-numbers > code {
+    position: relative;
+    white-space: inherit;
+}
+
+.line-numbers .line-numbers-rows {
+    position: absolute;
+    pointer-events: none;
+    top: 0;
+    font-size: 100%;
+    left: -3.5em;
+    width: 3em;
+    letter-spacing: -1px;
+    border-right: 1px solid var(--border-color);
+    user-select: none;
+    padding-right: 0.5em;
+}
+
+.line-numbers-rows > span {
+    pointer-events: none;
+    display: block;
+    counter-increment: linenumber;
+}
+
+.line-numbers-rows > span:before {
+    content: counter(linenumber);
+    color: var(--text-tertiary);
+    display: block;
+    padding-right: 0.5em;
+    text-align: right;
+}
+
+/* 代码高亮类 */
+.hljs {
+    background: var(--hljs-bg) !important;
+    color: var(--hljs-fg) !important;
+}
+
+/* 注释 */
+.hljs-comment,
+.hljs-quote {
+    color: var(--hljs-comment) !important;
+    font-style: italic;
+}
+
+/* 关键字 */
+.hljs-keyword,
+.hljs-selector-tag,
+.hljs-subst {
+    color: var(--hljs-keyword) !important;
+    font-weight: bold;
+}
+
+/* 数字 */
+.hljs-number,
+.hljs-literal,
+.hljs-variable,
+.hljs-template-variable,
+.hljs-tag .hljs-attr {
+    color: var(--hljs-number) !important;
+}
+
+/* 字符串 */
+.hljs-doctag,
+.hljs-string,
+.hljs-title,
+.hljs-section,
+.hljs-selector-id {
+    color: var(--hljs-string) !important;
+}
+
+/* 函数 */
+.hljs-type,
+.hljs-class .hljs-title,
+.hljs-tag,
+.hljs-regexp,
+.hljs-link {
+    color: var(--hljs-function) !important;
+    font-weight: bold;
+}
+
+/* 变量 */
+.hljs-symbol,
+.hljs-bullet,
+.hljs-built_in,
+.hljs-builtin-name {
+    color: var(--hljs-variable) !important;
+}
+
+/* 类名 */
+.hljs-meta,
+.hljs-deletion {
+    color: var(--hljs-class) !important;
+}
+
+/* 操作符 */
+.hljs-addition,
+.hljs-attribute,
+.hljs-meta-string {
+    color: var(--hljs-attribute) !important;
+}
+
+/* 属性 */
+.hljs-attr,
+.hljs-property {
+    color: var(--hljs-property) !important;
+}
+
+/* 内置函数 */
+.hljs-built_in {
+    color: var(--hljs-builtin) !important;
+}
+
+/* 正则表达式 */
+.hljs-regex {
+    color: var(--hljs-regex) !important;
+}
+
+/* 重要标记 */
+.hljs-emphasis {
+    font-style: italic;
+}
+
+.hljs-strong {
+    font-weight: bold;
+}
+
+/* 错误和警告 */
+.hljs-error {
+    color: var(--hljs-error) !important;
+    background-color: rgba(244, 71, 71, 0.1) !important;
+}
+
+.hljs-warning {
+    color: var(--hljs-warning) !important;
+    background-color: rgba(255, 204, 2, 0.1) !important;
+}
+
+/* 特殊语言支持 */
+
+/* Python */
+.language-python .hljs-keyword {
+    color: var(--hljs-keyword) !important;
+}
+
+.language-python .hljs-built_in {
+    color: var(--hljs-builtin) !important;
+}
+
+.language-python .hljs-function .hljs-title {
+    color: var(--hljs-function) !important;
+}
+
+.language-python .hljs-class .hljs-title {
+    color: var(--hljs-class) !important;
+}
+
+.language-python .hljs-string {
+    color: var(--hljs-string) !important;
+}
+
+.language-python .hljs-number {
+    color: var(--hljs-number) !important;
+}
+
+.language-python .hljs-comment {
+    color: var(--hljs-comment) !important;
+}
+
+/* JavaScript */
+.language-javascript .hljs-keyword {
+    color: var(--hljs-keyword) !important;
+}
+
+.language-javascript .hljs-built_in {
+    color: var(--hljs-builtin) !important;
+}
+
+.language-javascript .hljs-function .hljs-title {
+    color: var(--hljs-function) !important;
+}
+
+.language-javascript .hljs-string {
+    color: var(--hljs-string) !important;
+}
+
+.language-javascript .hljs-number {
+    color: var(--hljs-number) !important;
+}
+
+.language-javascript .hljs-comment {
+    color: var(--hljs-comment) !important;
+}
+
+/* JSON */
+.language-json .hljs-attr {
+    color: var(--hljs-property) !important;
+}
+
+.language-json .hljs-string {
+    color: var(--hljs-string) !important;
+}
+
+.language-json .hljs-number {
+    color: var(--hljs-number) !important;
+}
+
+.language-json .hljs-literal {
+    color: var(--hljs-keyword) !important;
+}
+
+/* CSS */
+.language-css .hljs-selector-tag {
+    color: var(--hljs-tag) !important;
+}
+
+.language-css .hljs-attribute {
+    color: var(--hljs-attribute) !important;
+}
+
+.language-css .hljs-built_in {
+    color: var(--hljs-builtin) !important;
+}
+
+.language-css .hljs-number {
+    color: var(--hljs-number) !important;
+}
+
+.language-css .hljs-string {
+    color: var(--hljs-string) !important;
+}
+
+/* HTML */
+.language-html .hljs-tag {
+    color: var(--hljs-tag) !important;
+}
+
+.language-html .hljs-attr {
+    color: var(--hljs-attribute) !important;
+}
+
+.language-html .hljs-string {
+    color: var(--hljs-string) !important;
+}
+
+.language-html .hljs-comment {
+    color: var(--hljs-comment) !important;
+}
+
+/* SQL */
+.language-sql .hljs-keyword {
+    color: var(--hljs-keyword) !important;
+    font-weight: bold;
+}
+
+.language-sql .hljs-built_in {
+    color: var(--hljs-builtin) !important;
+}
+
+.language-sql .hljs-string {
+    color: var(--hljs-string) !important;
+}
+
+.language-sql .hljs-number {
+    color: var(--hljs-number) !important;
+}
+
+/* Shell/Bash */
+.language-bash .hljs-built_in {
+    color: var(--hljs-builtin) !important;
+}
+
+.language-bash .hljs-variable {
+    color: var(--hljs-variable) !important;
+}
+
+.language-bash .hljs-string {
+    color: var(--hljs-string) !important;
+}
+
+/* YAML */
+.language-yaml .hljs-attr {
+    color: var(--hljs-property) !important;
+}
+
+.language-yaml .hljs-string {
+    color: var(--hljs-string) !important;
+}
+
+.language-yaml .hljs-number {
+    color: var(--hljs-number) !important;
+}
+
+.language-yaml .hljs-literal {
+    color: var(--hljs-keyword) !important;
+}
+
+/* 代码块工具栏 */
+.code-toolbar {
+    position: relative;
+    margin: 0;
+    padding: 0;
+}
+
+.code-toolbar > .toolbar-item {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    background-color: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    padding: 0.25rem 0.5rem;
+    font-size: var(--font-size-xs);
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    opacity: 0;
+}
+
+.code-toolbar:hover > .toolbar-item {
+    opacity: 1;
+}
+
+.code-toolbar > .toolbar-item:hover {
+    background-color: var(--bg-hover);
+    color: var(--text-primary);
+}
+
+/* 行高亮 */
+.line-highlight {
+    background-color: rgba(255, 255, 0, 0.1) !important;
+    border-left: 3px solid var(--warning-color) !important;
+    padding-left: 0.5rem !important;
+    margin-left: -0.5rem !important;
+}
+
+[data-theme="dark"] .line-highlight {
+    background-color: rgba(255, 204, 2, 0.1) !important;
+}
+
+/* 代码块标题 */
+.code-title {
+    background-color: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-bottom: none;
+    border-radius: var(--radius-md) var(--radius-md) 0 0;
+    padding: var(--spacing-sm) var(--spacing-md);
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+    color: var(--text-secondary);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.code-title + pre {
+    border-radius: 0 0 var(--radius-md) var(--radius-md) !important;
+    border-top: none !important;
+    margin-top: 0 !important;
+}
+
+/* 代码块语言标识 */
+.code-language {
+    background-color: var(--primary-color);
+    color: var(--text-inverse);
+    font-size: var(--font-size-xs);
+    font-weight: 500;
+    padding: 0.125rem 0.5rem;
+    border-radius: var(--radius-sm);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* 内联代码样式 */
+:not(pre) > code {
+    background-color: var(--bg-tertiary) !important;
+    color: var(--hljs-fg) !important;
+    padding: 0.125rem 0.25rem !important;
+    border-radius: var(--radius-sm) !important;
+    font-size: 0.875em !important;
+    border: 1px solid var(--border-color) !important;
+}
+
+/* 终端样式 */
+.terminal {
+    background-color: #1e1e1e !important;
+    color: #d4d4d4 !important;
+    border: 1px solid var(--border-color) !important;
+    border-radius: var(--radius-md) !important;
+    padding: var(--spacing-md) !important;
+    font-family: var(--font-mono) !important;
+    font-size: var(--font-size-sm) !important;
+    line-height: 1.5 !important;
+    margin-bottom: var(--spacing-md) !important;
+}
+
+.terminal::before {
+    content: "Terminal";
+    display: block;
+    color: var(--text-tertiary);
+    font-size: var(--font-size-xs);
+    margin-bottom: var(--spacing-sm);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.terminal .prompt {
+    color: #4ec9b0;
+    font-weight: bold;
+}
+
+.terminal .command {
+    color: #d4d4d4;
+}
+
+.terminal .output {
+    color: #9cdcfe;
+}
+
+/* 响应式代码块 */
+@media (max-width: 768px) {
+    pre {
+        font-size: var(--font-size-xs) !important;
+        padding: var(--spacing-sm) !important;
+    }
+    
+    .code-toolbar > .toolbar-item {
+        font-size: 0.7rem;
+        padding: 0.2rem 0.4rem;
+    }
+    
+    .code-title {
+        padding: var(--spacing-xs) var(--spacing-sm);
+        font-size: var(--font-size-xs);
+    }
+}
+
+/* 打印样式 */
+@media print {
+    pre {
+        background-color: white !important;
+        color: black !important;
+        border: 1px solid #ccc !important;
+        box-shadow: none !important;
+        page-break-inside: avoid;
+    }
+    
+    .line-numbers-rows {
+        color: #666 !important;
+        border-right-color: #ccc !important;
+    }
+    
+    .code-toolbar > .toolbar-item {
+        display: none !important;
+    }
+    
+    .code-title {
+        background-color: #f5f5f5 !important;
+        color: #333 !important;
+        border-color: #ccc !important;
+    }
+}

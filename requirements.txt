@@ -1,0 +1,34 @@
+# Core dependencies
+agentscope @ git+https://github.com/agentscope-ai/agentscope.git
+
+# Web framework
+Flask>=2.3.0
+Flask-CORS>=4.0.0
+
+# Authentication
+PyJWT>=2.8.0
+
+# Configuration and data handling
+PyYAML>=6.0
+# Watchdog for file monitoring
+watchdog>=3.0.0
+
+# Testing
+pytest>=8.0.0
+pytest-asyncio>=0.21.0
+pytest-cov>=4.1.0
+pytest-mock>=3.10.0
+
+# Performance and reporting
+matplotlib>=3.7.0
+pandas>=2.0.0
+psutil>=5.9.0
+
+# Development tools
+ruff>=0.6.0
+mypy>=1.9.0
+types-setuptools
+
+# Additional utilities
+aiohttp>=3.8.0
+python-dateutil>=2.8.0

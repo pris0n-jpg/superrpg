@@ -1,1140 +1,406 @@
 #!/usr/bin/env python3
-from __future__ import annotations
-
 """
-Central Orchestrator (main layer)
+SuperRPG 应用程序主入口
 
-职责：
-- 加载配置、创建日志上下文；
-- 构造 world 端口、actions 工具、agents 工厂；
-- 通过依赖注入调用 run_demo（已内联自原 runtime.engine）。
+该模块是SuperRPG应用程序的主入口点，集成了所有模块化架构组件。
+使用增强应用启动器提供统一的启动、配置和管理功能。
+
+主要职责：
+1. 启动模块化应用
+2. 配置应用参数
+3. 集成所有核心模块
+4. 处理应用生命周期
+5. 提供错误处理和日志记录
 """
 
 import asyncio
-import json
-import re
-from typing import Any, Dict, List, Optional, Tuple, Callable, Mapping
+import logging
+import sys
+import os
+import traceback
+from typing import Dict, Any, Optional
 from pathlib import Path
-from agentscope.agent import AgentBase, ReActAgent  # type: ignore
-from agentscope.message import Msg  # type: ignore
-from agentscope.pipeline import MsgHub, sequential_pipeline  # type: ignore
-from dataclasses import asdict, is_dataclass
 
-from actions.npc import make_npc_actions
-import world.tools as world_impl
-from eventlog import create_logging_context, Event, EventType
-from settings.loader import (
-    project_root,
-    load_prompts,
-    load_model_config,
-    load_feature_flags,
-    load_story_config,
-    load_characters,
-)
-from agents.factory import make_kimi_npc
+# 导入增强应用启动器
+try:
+    # 尝试相对导入（作为模块运行时）
+    from .bootstrap.enhanced_application_bootstrap import (
+        EnhancedApplicationBootstrap,
+        EnhancedApplicationContext,
+        BootstrapConfig,
+        run_enhanced_application
+    )
+    from .infrastructure.config.enhanced_config_manager import EnhancedConfigManager
+    from .adapters.api_documentation import DocumentationManager
+    from .adapters.api_gateway import ApiGateway
+    from .core.interfaces import Logger, GameCoordinator as IGameCoordinator
+except ImportError:
+    # 回退到绝对导入（直接运行脚本时）
+    project_root = Path(__file__).parent.parent
+    if str(project_root) not in sys.path:
+        sys.path.insert(0, str(project_root))
 
-
-class _WorldPort:
-    """Light adapter around world.tools to avoid component coupling in engine."""
-
-    # bind frequently used world functions as simple static methods
-    set_dnd_character = staticmethod(world_impl.set_dnd_character)
-    set_position = staticmethod(world_impl.set_position)
-    set_scene = staticmethod(world_impl.set_scene)
-    set_relation = staticmethod(world_impl.set_relation)
-    get_turn = staticmethod(world_impl.get_turn)
-    reset_actor_turn = staticmethod(world_impl.reset_actor_turn)
-    end_combat = staticmethod(world_impl.end_combat)
-    set_dnd_character_from_config = staticmethod(world_impl.set_dnd_character_from_config)
-
-    @staticmethod
-    def snapshot() -> Dict[str, Any]:
-        return world_impl.WORLD.snapshot()
-
-    @staticmethod
-    def runtime() -> Dict[str, Any]:
-        W = world_impl.WORLD
-        return {
-            "positions": dict(W.positions),
-            "in_combat": bool(W.in_combat),
-            "turn_state": dict(W.turn_state),
-            "round": int(W.round),
-            "characters": dict(W.characters),
-        }
+    from src.bootstrap.enhanced_application_bootstrap import (
+        EnhancedApplicationBootstrap,
+        EnhancedApplicationContext,
+        BootstrapConfig,
+        run_enhanced_application
+    )
+    from src.infrastructure.config.enhanced_config_manager import EnhancedConfigManager
+    from src.adapters.api_documentation import DocumentationManager
+    from src.adapters.api_gateway import ApiGateway
+    from src.core.interfaces import Logger, GameCoordinator as IGameCoordinator
 
 
-
-_DEFAULT_DOCTOR_PERSONA = (
-    "角色：罗德岛‘博士’，战术协调与决策核心。\n"
-    "背景：在凯尔希与阿米娅的协助下进行战略研判，偏好以信息整合与资源调配达成目标。\n"
-    "说话风格：简短、理性、任务导向；避免夸饰与情绪化表达。\n"
-    "边界：不自称超自然或超现实身份；不越权知晓未公开的机密情报。\n"
-)
-
-
-def _join_lines(tpl):
-    if isinstance(tpl, list):
-        try:
-            return "\n".join(str(x) for x in tpl)
-        except Exception:
-            return "\n".join(tpl)
-    return tpl
-
-
-# reach/attack range normalization moved to world.set_dnd_character_from_config
-
-
-async def run_demo(
-    *,
-    emit: Callable[..., None],
-    build_agent: Callable[..., ReActAgent],
-    tool_fns: List[object] | None,
-    tool_dispatch: Dict[str, object] | None,
-    prompts: Mapping[str, Any],
-    model_cfg: Mapping[str, Any],
-    feature_flags: Mapping[str, Any],
-    story_cfg: Mapping[str, Any],
-    characters: Mapping[str, Any],
-    world: Any,
-) -> None:
-    """Run the NPC talk demo (sequential group chat, no GM/adjudication)."""
-
-    story_positions: Dict[str, Tuple[int, int]] = {}
-
-    def _ingest_positions(raw: Any) -> None:
-        if not isinstance(raw, dict):
-            return
-        for actor_name, pos in raw.items():
-            if isinstance(pos, (list, tuple)) and len(pos) >= 2:
-                try:
-                    story_positions[str(actor_name)] = (int(pos[0]), int(pos[1]))
-                except Exception:
-                    continue
-
-    if isinstance(story_cfg, dict):
-        _ingest_positions(story_cfg.get("initial_positions") or {})
-        _ingest_positions(story_cfg.get("positions") or {})
-        initial_section = story_cfg.get("initial")
-        if isinstance(initial_section, dict):
-            _ingest_positions(initial_section.get("positions") or {})
-
-    def _apply_story_position(name: str) -> None:
-        pos = story_positions.get(str(name))
-        if not pos:
-            return
-        try:
-            world.set_position(name, pos[0], pos[1])
-        except Exception:
-            pass
-
-    doctor_persona = prompts.get("player_persona") or _DEFAULT_DOCTOR_PERSONA
-    npc_prompt_tpl = _join_lines(prompts.get("npc_prompt_template"))
+def configure_logging() -> None:
+    """配置日志系统"""
+    # 确保logs目录存在
+    os.makedirs('logs', exist_ok=True)
+    
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+        handlers=[
+            logging.StreamHandler(sys.stdout),
+            logging.FileHandler('logs/application.log', encoding='utf-8')
+        ]
+    )
+    
+    # 设置第三方库日志级别
+    logging.getLogger('httpx').setLevel(logging.WARNING)
+    logging.getLogger('urllib3').setLevel(logging.WARNING)
+    logging.getLogger('watchdog').setLevel(logging.WARNING)
 
 
-    # Build actors from configs or fallback
-    char_cfg = dict(characters or {})
-    npcs_list: List[ReActAgent] = []
-    participants_order: List[AgentBase] = []
-    actor_entries: Dict[str, dict] = {}
-    try:
-        actor_entries = {
-            str(k): v
-            for k, v in char_cfg.items()
-            if isinstance(v, dict)
-            and str(k) not in {"relations", "objective_positions", "participants"}
-        }
-    except Exception:
-        actor_entries = {}
-    # Participants resolution per request: derive purely from story positions that were ingested
-    # into `story_positions` (supports top-level initial_positions/positions 或 initial.positions)。
-    # If none present, run without participants (no implicit fallback to any default pair).
-    allowed_names: List[str] = list(story_positions.keys())
-    allowed_names_str = ", ".join(allowed_names) if allowed_names else ""
-
-    rel_cfg_raw = char_cfg.get("relations") if isinstance(char_cfg, dict) else {}
-
-    def _relation_category(score: int) -> str:
-        if score >= 60:
-            return "挚友"
-        if score >= 40:
-            return "亲密同伴"
-        if score >= 10:
-            return "盟友"
-        if score <= -60:
-            return "死敌"
-        if score <= -40:
-            return "仇视"
-        if score <= -10:
-            return "敌对"
-        return "中立"
-
-    def _relation_brief(name: str) -> str:
-        if not isinstance(rel_cfg_raw, dict):
-            return ""
-        mapping = rel_cfg_raw.get(str(name))
-        if not isinstance(mapping, dict) or not mapping:
-            return ""
-        entries: List[str] = []
-        for dst, raw in mapping.items():
-            if str(dst) == str(name):
-                continue
-            try:
-                score = int(raw)
-            except Exception:
-                continue
-            label = _relation_category(score)
-            entries.append(f"{dst}:{score:+d}（{label}）")
-        return "；".join(entries)
-
-    # Tool list must be provided by caller (main). Keep empty default.
-    tool_list = list(tool_fns) if tool_fns is not None else []
-
-    if allowed_names:
-        for name in allowed_names:
-            entry = (char_cfg.get(name) or {}) if isinstance(char_cfg, dict) else {}
-            # Stat block
-            dnd = entry.get("dnd") or {}
-            try:
-                if dnd:
-                    # Use world normalizer for DnD config
-                    world.set_dnd_character_from_config(name=name, dnd=dnd)
-                else:
-                    # Ensure the character exists even without dnd config
-                    world.set_dnd_character(
-                        name=name,
-                        level=1,
-                        ac=10,
-                        abilities={"STR": 10, "DEX": 10, "CON": 10, "INT": 10, "WIS": 10, "CHA": 10},
-                        max_hp=10,
-                        proficient_skills=[],
-                        proficient_saves=[],
-                        move_speed_steps=6,
-                    )
-            except Exception:
-                pass
-            _apply_story_position(name)
-            persona = entry.get("persona") or (doctor_persona if name == "Doctor" else "一个简短的人设描述")
-            appearance = entry.get("appearance")
-            quotes = entry.get("quotes")
-            agent = build_agent(
-                name,
-                persona,
-                model_cfg,
-                prompt_template=npc_prompt_tpl,
-                allowed_names=allowed_names_str,
-                appearance=appearance,
-                quotes=quotes,
-                relation_brief=_relation_brief(name),
-                tools=tool_list,
-            )
-            npcs_list.append(agent)
-            participants_order.append(agent)
-        # preload non-participant actors (e.g., enemies) into world sheets
-        for name, entry in actor_entries.items():
-            if name in allowed_names:
-                continue
-            dnd = entry.get("dnd") or {}
-            if dnd:
-                try:
-                    world.set_dnd_character_from_config(name=name, dnd=dnd)
-                except Exception:
-                    pass
-            _apply_story_position(name)
-    # No fallback to default protagonists; if story provides no positions, run without participants.
-
-    for nm in story_positions:
-        try:
-            if nm in (world.runtime().get("positions") or {}):
-                continue
-        except Exception:
-            pass
-        _apply_story_position(nm)
-
-    # Initialize relations from config
-    rel_cfg = rel_cfg_raw or {}
-    if isinstance(rel_cfg, dict):
-        for src, mapping in rel_cfg.items():
-            if not isinstance(mapping, dict):
-                continue
-            for dst, val in mapping.items():
-                try:
-                    score = max(-100, min(100, int(val)))
-                except Exception:
-                    continue
-                try:
-                    world.set_relation(str(src), str(dst), score, reason="配置设定")
-                except Exception:
-                    pass
-
-    # Ensure Doctor exists only if he is a participant
-    try:
-        world_chars = world.runtime().get("characters") or {}
-    except Exception:
-        world_chars = {}
-    if "Doctor" in allowed_names and "Doctor" not in world_chars:
-        world.set_dnd_character(
-            name="Doctor",
-            level=1,
-            ac=14,
-            abilities={"STR": 12, "DEX": 16, "CON": 14, "INT": 10, "WIS": 14, "CHA": 10},
-            max_hp=12,
-            proficient_skills=["athletics", "insight", "medicine"],
-            proficient_saves=["STR", "DEX"],
-            move_speed_steps=6,
-        )
-
-    # Scene setup sourced from story config (time/weather/details from JSON; no hardcoded defaults)
-    scene_cfg = story_cfg.get("scene") if isinstance(story_cfg, dict) else {}
-    scene_name = None
-    scene_objectives: List[str] = []
-    scene_details: List[str] = []
-    scene_weather: Optional[str] = None
-    scene_time_min: Optional[int] = None
-    if isinstance(scene_cfg, dict):
-        name_candidate = scene_cfg.get("name")
-        if isinstance(name_candidate, str) and name_candidate.strip():
-            scene_name = name_candidate.strip()
-        objs = scene_cfg.get("objectives")
-        if isinstance(objs, list):
-            for obj in objs:
-                if isinstance(obj, str) and obj.strip():
-                    scene_objectives.append(obj.strip())
-        details_val = scene_cfg.get("details")
-        if isinstance(details_val, str) and details_val.strip():
-            scene_details = [details_val.strip()]
-        elif isinstance(details_val, list):
-            for d in details_val:
-                if isinstance(d, str) and d.strip():
-                    scene_details.append(d.strip())
-        # Prefer HH:MM string if provided; fallback to time_min
-        tstr = scene_cfg.get("time")
-        if isinstance(tstr, str) and tstr:
-            m = re.match(r"^(\d{1,2}):(\d{2})$", tstr.strip())
-            if m:
-                hh, mm = int(m.group(1)), int(m.group(2))
-                if 0 <= hh < 24 and 0 <= mm < 60:
-                    scene_time_min = hh * 60 + mm
-        if scene_time_min is None:
-            tm = scene_cfg.get("time_min", None)
-            if isinstance(tm, (int, float)):
-                try:
-                    scene_time_min = int(tm)
-                except Exception:
-                    scene_time_min = None
-        w = scene_cfg.get("weather")
-        if isinstance(w, str) and w.strip():
-            scene_weather = w.strip()
-    # Apply story config if any; otherwise keep current world defaults
-    if any([scene_name, scene_objectives, scene_details, scene_weather, scene_time_min is not None]):
-        try:
-            snap0 = world.snapshot()
-            current_loc = str((snap0 or {}).get("location") or "")
-        except Exception:
-            current_loc = ""
-        world.set_scene(
-            scene_name or current_loc,
-            scene_objectives or None,
-            append=False,
-            details=scene_details or None,
-            time_min=scene_time_min,
-            weather=scene_weather,
-        )
-
-    current_round = 0
-
-    def _emit(
-        event_type: str,
-        *,
-        actor: Optional[str] = None,
-        phase: Optional[str] = None,
-        turn: Optional[int] = None,
-        data: Optional[Dict[str, Any]] = None,
-    ) -> None:
-        payload = dict(data or {})
-        emit(event_type=event_type, actor=actor, phase=phase, turn=turn if turn is not None else (current_round or None), data=payload)
-
-    async def _bcast(hub: MsgHub, msg: Msg, *, phase: Optional[str] = None):
-        await hub.broadcast(msg)
-        text = _safe_text(msg)
-        _emit(
-            "narrative",
-            actor=msg.name,
-            phase=phase,
-            data={"text": text, "role": getattr(msg, "role", None)},
-        )
-        # record to in-memory chat log for recap (best-effort)
-        try:
-            CHAT_LOG.append({
-                "actor": getattr(msg, "name", None),
-                "role": getattr(msg, "role", None),
-                "text": text,
-                "turn": current_round,
-                "phase": phase or "",
-            })
-        except Exception:
-            pass
-
-    # Accept both styles that agents may output:
-    # 1) CALL_TOOL name({json})
-    # 2) CALL_TOOL name\n{json}
-    # Some models also append a suffix like ":3" after the tool name (e.g. for footnotes).
-    # We therefore avoid a strict regex on parentheses and instead scan forward
-    # for the next balanced JSON object after the tool name token.
-    TOOL_CALL_PATTERN = re.compile(r"CALL_TOOL\s+(?P<name>[A-Za-z_][A-Za-z0-9_]*)")
-
-    # Centralised tool dispatch mapping (must be injected by caller)
-    TOOL_DISPATCH = dict(tool_dispatch or {})
-    allowed_set = {str(n) for n in (allowed_names or [])}
-    # ---- In-memory mini logs for per-turn recap (broadcast to all participants) ----
-    CHAT_LOG: List[Dict[str, Any]] = []     # {actor, role, text, turn, phase}
-    ACTION_LOG: List[Dict[str, Any]] = []   # {actor, tool, type, text|params, meta, turn}
-    LAST_SEEN: Dict[str, int] = {}          # per-actor chat index checkpoint
-    recap_enabled = bool((feature_flags or {}).get("pre_turn_recap", True))
-    recap_msg_limit = int((feature_flags or {}).get("recap_msg_limit", 6))
-    recap_action_limit = int((feature_flags or {}).get("recap_action_limit", 6))
-
-    def _safe_text(msg: Msg) -> str:
-        try:
-            text = msg.get_text_content()
-        except Exception:
-            text = None
-        if text is not None:
-            return str(text)
-        content = getattr(msg, "content", None)
-        if isinstance(content, str):
-            return content
-        if isinstance(content, list):
-            lines = []
-            for blk in content:
-                if hasattr(blk, "text"):
-                    lines.append(str(getattr(blk, "text", "")))
-                elif isinstance(blk, dict):
-                    lines.append(str(blk.get("text", "")))
-            return "\n".join(line for line in lines if line)
-        return str(content)
-
-    def _parse_tool_calls(text: str) -> List[Tuple[str, dict]]:
-        calls: List[Tuple[str, dict]] = []
-        if not text:
-            return calls
-
-        def _extract_json_after(s: str, start_pos: int) -> Tuple[Optional[str], int]:
-            """Return (json_text, end_index) for the first balanced {...} after start_pos.
-
-            end_index points to the character index just after the closing brace,
-            or start_pos if nothing could be parsed.
-            """
-            n = len(s)
-            i = s.find("{", start_pos)
-            if i == -1:
-                return None, start_pos
-            brace = 0
-            in_str = False
-            esc = False
-            j = i
-            while j < n:
-                ch = s[j]
-                if in_str:
-                    if esc:
-                        esc = False
-                    elif ch == "\\":
-                        esc = True
-                    elif ch == '"':
-                        in_str = False
-                else:
-                    if ch == '"':
-                        in_str = True
-                    elif ch == '{':
-                        brace += 1
-                    elif ch == '}':
-                        brace -= 1
-                        if brace == 0:
-                            return s[i : j + 1], j + 1
-                j += 1
-            return None, start_pos
-
-        idx = 0
-        while True:
-            m = TOOL_CALL_PATTERN.search(text, idx)
-            if not m:
-                break
-            name = m.group("name")
-            # Skip any suffix like ":3" or whitespace/colon before the JSON
-            scan_from = m.end()
-            # Extract JSON object following the tool name (with or without parentheses)
-            json_body, end_pos = _extract_json_after(text, scan_from)
-            params: dict = {}
-            if json_body:
-                try:
-                    params = json.loads(json_body)
-                except Exception:
-                    params = {}
-                calls.append((name, params))
-                idx = end_pos
-            else:
-                # No JSON body found; advance to avoid infinite loop
-                idx = scan_from
-        return calls
-
-    def _strip_tool_calls_from_text(text: str) -> str:
-        """Return `text` with all CALL_TOOL ... {json} segments removed.
-
-        Compatible with both styles:
-        - CALL_TOOL name({json})
-        - CALL_TOOL name\n{json}
-        Also tolerant to suffix like `:3` after tool name.
-        """
-        if not text:
-            return text
-
-        def _extract_json_after(s: str, start_pos: int) -> Tuple[Optional[str], int]:
-            n = len(s)
-            i = s.find("{", start_pos)
-            if i == -1:
-                return None, start_pos
-            brace = 0
-            in_str = False
-            esc = False
-            j = i
-            while j < n:
-                ch = s[j]
-                if in_str:
-                    if esc:
-                        esc = False
-                    elif ch == "\\":
-                        esc = True
-                    elif ch == '"':
-                        in_str = False
-                else:
-                    if ch == '"':
-                        in_str = True
-                    elif ch == '{':
-                        brace += 1
-                    elif ch == '}':
-                        brace -= 1
-                        if brace == 0:
-                            return s[i : j + 1], j + 1
-                j += 1
-            return None, start_pos
-
-        idx = 0
-        out_parts: List[str] = []
-        while True:
-            m = TOOL_CALL_PATTERN.search(text, idx)
-            if not m:
-                out_parts.append(text[idx:])
-                break
-            # Keep text before the tool call
-            out_parts.append(text[idx:m.start()])
-            scan_from = m.end()
-            # Remove the following JSON object if present
-            json_body, end_pos = _extract_json_after(text, scan_from)
-            if json_body:
-                idx = end_pos
-            else:
-                idx = scan_from
-        return "".join(out_parts)
-
-    # --- Dev-only context snapshot: write a compact card per-actor to logs/<actor>_context_dev.log ---
-    def _write_dev_context_card(name: str) -> None:
-        """Append a human-friendly context card for `name` to its own log file.
-
-        This does NOT broadcast to agents and does NOT affect memory.
-        """
-        try:
-            # Build sections
-            snap = world.snapshot()
-            world_txt = _world_summary_text(snap)
-
-            start = int(LAST_SEEN.get(name, 0))
-            recent_msgs = [e for e in CHAT_LOG[start:] if e.get("actor") not in (None, "Host")]
-            if recap_msg_limit > 0:
-                recent_msgs = recent_msgs[-recap_msg_limit:]
-            # Dev view no longer includes a separate Recent Actions block;
-            # actions/results are already reflected in broadcast messages.
-
-            rel_text = _relation_brief(name)
-
-            lines: List[str] = []
-            lines.append(f"=== Round {current_round} | Actor: {name} ===")
-            if rel_text:
-                lines.append(f"[Relation] {rel_text}")
-            lines.append("[World]")
-            lines.append(world_txt)
-            if recent_msgs:
-                lines.append("[Recent Messages]")
-                for e in recent_msgs:
-                    txt = str(e.get("text") or "").strip()
-                    if len(txt) > 160:
-                        txt = txt[:157] + "..."
-                    lines.append(f"- {e.get('actor')}: {txt}")
-            # (no Recent Actions section by design)
-
-            # Write to logs/<actor>_context_dev.log
-            logs_dir = project_root() / "logs"
-            try:
-                logs_dir.mkdir(parents=True, exist_ok=True)
-            except Exception:
-                pass
-            # Use actor name directly (project uses ASCII names); fallback to safe filename
-            safe = "".join(ch if ch.isalnum() or ch in ("_", "-", ".") else "_" for ch in str(name))
-            path = logs_dir / f"{safe}_context_dev.log"
-            with path.open("a", encoding="utf-8") as f:
-                f.write("\n".join(lines) + "\n\n")
-        except Exception:
-            # Dev utility is best-effort; never break the main loop
-            pass
-
-    async def _handle_tool_calls(origin: Msg, hub: MsgHub):
-        text = _safe_text(origin)
-        tool_calls = _parse_tool_calls(text)
-        if not tool_calls:
-            return
-        for tool_name, params in tool_calls:
-            phase = f"tool:{tool_name}"
-            func = TOOL_DISPATCH.get(tool_name)
-            if not func:
-                _emit(
-                    "error",
-                    actor=origin.name,
-                    phase=phase,
-                    data={
-                        "message": f"未知工具调用 {tool_name}",
-                        "tool": tool_name,
-                        "params": params,
-                        "error_type": "tool_not_found",
-                    },
-                )
-                continue
-            # Enforce that tool params refer to known participants only
-            def _bad_actor(val: object) -> str | None:
-                if not allowed_set:
-                    return None
-                if isinstance(val, str) and val not in allowed_set:
-                    return val
-                return None
-            name_keys = {
-                "perform_attack": ["attacker", "defender"],
-                "auto_engage": ["attacker", "defender"],
-                "perform_skill_check": ["name"],
-                "advance_position": ["name"],
-                "adjust_relation": ["a", "b"],
-                "transfer_item": ["target"],
-            }.get(tool_name, [])
-            invalid = None
-            for k in name_keys:
-                invalid = _bad_actor(params.get(k))
-                if invalid:
-                    break
-            if invalid:
-                _emit(
-                    "error",
-                    actor=origin.name,
-                    phase=phase,
-                    data={
-                        "message": f"无效角色名：{invalid}",
-                        "tool": tool_name,
-                        "params": params,
-                        "allowed": sorted(allowed_set),
-                        "error_type": "invalid_actor",
-                    },
-                )
-                await _bcast(hub, Msg("Host", f"无效角色名：{invalid}。合法参与者：{', '.join(sorted(allowed_set))}", "assistant"), phase=phase)
-                continue
-            _emit(
-                "tool_call",
-                actor=origin.name,
-                phase=phase,
-                data={"tool": tool_name, "params": params},
-            )
-            try:
-                ACTION_LOG.append({
-                    "actor": origin.name,
-                    "tool": tool_name,
-                    "type": "call",
-                    "params": dict(params or {}),
-                    "turn": current_round,
-                })
-            except Exception:
-                pass
-            try:
-                resp = func(**params)
-            except TypeError as exc:
-                _emit(
-                    "error",
-                    actor=origin.name,
-                    phase=phase,
-                    data={
-                        "message": str(exc),
-                        "tool": tool_name,
-                        "params": params,
-                        "error_type": "invalid_parameters",
-                    },
-                )
-                continue
-            except Exception as exc:  # pylint: disable=broad-except
-                _emit(
-                    "error",
-                    actor=origin.name,
-                    phase=phase,
-                    data={
-                        "message": str(exc),
-                        "tool": tool_name,
-                        "params": params,
-                        "error_type": exc.__class__.__name__,
-                    },
-                )
-                continue
-            text_blocks = getattr(resp, "content", None)
-            lines: List[str] = []
-            if isinstance(text_blocks, list):
-                for blk in text_blocks:
-                    if hasattr(blk, "text"):
-                        lines.append(str(getattr(blk, "text", "")))
-                    elif isinstance(blk, dict):
-                        lines.append(str(blk.get("text", "")))
-                    else:
-                        lines.append(str(blk))
-            meta = getattr(resp, "metadata", None)
-            _emit(
-                "tool_result",
-                actor=origin.name,
-                phase=phase,
-                data={"tool": tool_name, "metadata": meta, "text": lines},
-            )
-            try:
-                ACTION_LOG.append({
-                    "actor": origin.name,
-                    "tool": tool_name,
-                    "type": "result",
-                    "text": list(lines),
-                    "meta": meta,
-                    "turn": current_round,
-                })
-            except Exception:
-                pass
-            if not lines:
-                continue
-            tool_msg = Msg(
-                name=f"{origin.name}[tool]",
-                content="\n".join(line for line in lines if line),
-                role="assistant",
-            )
-            await _bcast(hub, tool_msg, phase=phase)
-
-
-    def _recap_for(name: str) -> Optional[Msg]:
-        """Build a concise recap message for the upcoming actor, or None if empty/disabled.
-
-        Recap includes up to N recent broadcasts (excluding Host-only boilerplate) and
-        up to M recent tool results. The recap is broadcast to all participants.
-        """
-        if not recap_enabled:
-            return None
-        start = int(LAST_SEEN.get(name, 0))
-        # Exclude pure Host messages to avoid duplicating world-summary headers
-        recent_msgs = [e for e in CHAT_LOG[start:] if e.get("actor") not in (None, "Host")]
-        if recap_msg_limit > 0:
-            recent_msgs = recent_msgs[-recap_msg_limit:]
-        # Drop the separate actions section from recap; messages already include tool results
-        recent_actions = []
-        if not recent_msgs:
-            return None
-        lines: List[str] = [f"系统回顾（供 {name} 决策）"]
-        if recent_msgs:
-            lines.append("最近播报：")
-            for e in recent_msgs:
-                txt = str(e.get("text") or "").strip()
-                if len(txt) > 160:
-                    txt = txt[:157] + "..."
-                lines.append(f"- {e.get('actor')}: {txt}")
-        # No separate actions block
-        LAST_SEEN[name] = len(CHAT_LOG)
-        return Msg("Host", "\\n".join(lines), "assistant")
-
-    # Human-readable header for participants and starting positions
-    _start_pos_lines = []
-    try:
-        for nm in allowed_names:
-            pos = story_positions.get(nm)
-            if pos:
-                _start_pos_lines.append(f"{nm}({pos[0]}, {pos[1]})")
-    except Exception:
-        _start_pos_lines = []
-    _participants_header = (
-        "参与者：" + (", ".join(allowed_names) if allowed_names else "(无)") +
-        (" | 初始坐标：" + "; ".join(_start_pos_lines) if _start_pos_lines else "")
+def create_bootstrap_config() -> BootstrapConfig:
+    """创建启动器配置
+    
+    Returns:
+        BootstrapConfig: 启动器配置
+    """
+    # 从环境变量获取配置
+    env = os.environ
+    
+    return BootstrapConfig(
+        enable_extensions=env.get('ENABLE_EXTENSIONS', 'true').lower() == 'true',
+        enable_api_gateway=env.get('ENABLE_API_GATEWAY', 'true').lower() == 'true',
+        enable_health_checks=env.get('ENABLE_HEALTH_CHECKS', 'true').lower() == 'true',
+        enable_graceful_shutdown=env.get('ENABLE_GRACEFUL_SHUTDOWN', 'true').lower() == 'true',
+        shutdown_timeout=int(env.get('SHUTDOWN_TIMEOUT', '30')),
+        health_check_interval=int(env.get('HEALTH_CHECK_INTERVAL', '30')),
+        extensions_dir=env.get('EXTENSIONS_DIR', 'extensions'),
+        config_dir=env.get('CONFIG_DIR', 'configs'),
+        log_level=env.get('LOG_LEVEL', 'INFO')
     )
 
-    # Opening text: prefer configs/story.json -> scene.description/opening; fallback to legacy hardcoded line
-    opening_text: Optional[str] = None
-    try:
-        if isinstance(story_cfg, dict):
-            sc = story_cfg.get("scene")
-            if isinstance(sc, dict):
-                txt = (sc.get("description") or sc.get("opening") or "")
-                if isinstance(txt, str) and txt.strip():
-                    opening_text = txt.strip()
-    except Exception:
-        opening_text = None
-    default_opening = "旧城区·北侧仓棚。铁梁回声震耳，每名战斗者都盯紧了自己的对手——退路已绝，只能分出胜负！"
-    announcement_text = (opening_text or default_opening) + "\n" + _participants_header
 
-    async with MsgHub(
-        participants=list(participants_order),
-        announcement=Msg(
-            "Host",
-            announcement_text,
-            "assistant",
-        ),
-    ) as hub:
-        await sequential_pipeline(npcs_list)
-        _emit("state_update", phase="initial", data={"state": world.snapshot()})
-        round_idx = 1
+def create_application_config() -> Dict[str, Any]:
+    """创建应用配置
+    
+    Returns:
+        Dict[str, Any]: 应用配置
+    """
+    return {
+        # 游戏配置
+        "game": {
+            "max_rounds": int(os.environ.get('MAX_ROUNDS', '50')),
+            "turn_timeout": int(os.environ.get('TURN_TIMEOUT', '30')),
+            "agent_timeout": int(os.environ.get('AGENT_TIMEOUT', '30')),
+            "require_hostiles": os.environ.get('REQUIRE_HOSTILES', 'true').lower() == 'true',
+            "debug_mode": os.environ.get('DEBUG_MODE', 'false').lower() == 'true'
+        },
+        
+        # AI配置
+        "ai": {
+            "model": os.environ.get('AI_MODEL', 'gpt-3.5-turbo'),
+            "api_key": os.environ.get('AI_API_KEY', ''),
+            "base_url": os.environ.get('AI_BASE_URL', 'https://api.openai.com/v1'),
+            "temperature": float(os.environ.get('AI_TEMPERATURE', '0.7')),
+            "max_tokens": int(os.environ.get('AI_MAX_TOKENS', '1000'))
+        },
+        
+        # API配置
+        "api": {
+            "host": os.environ.get('API_HOST', 'localhost'),
+            "port": int(os.environ.get('API_PORT', '3010')),
+            "enable_cors": os.environ.get('API_ENABLE_CORS', 'true').lower() == 'true',
+            "enable_docs": os.environ.get('API_ENABLE_DOCS', 'true').lower() == 'true'
+        },
+        
+        # 数据库配置
+        "database": {
+            "url": os.environ.get('DATABASE_URL', 'sqlite:///game.db'),
+            "echo": os.environ.get('DATABASE_ECHO', 'false').lower() == 'true'
+        },
+        
+        # 扩展配置
+        "extensions": {
+            "auto_load": os.environ.get('EXTENSIONS_AUTO_LOAD', 'true').lower() == 'true',
+            "auto_activate": os.environ.get('EXTENSIONS_AUTO_ACTIVATE', 'true').lower() == 'true'
+        }
+    }
+
+
+async def setup_api_routes(bootstrap: EnhancedApplicationBootstrap) -> None:
+    """设置API路由
+    
+    Args:
+        bootstrap: 应用启动器
+    """
+    if not bootstrap.api_gateway:
+        return
+    
+    gateway = bootstrap.api_gateway
+    
+    # 健康检查路由
+    async def health_handler(**kwargs):
+        if bootstrap.health_checker:
+            return await bootstrap.health_checker.check_health().to_dict()
+        return {"status": "ok"}
+    
+    gateway.add_route(
+        path="/health",
+        method="GET",
+        handler=health_handler,
+        name="health_check",
+        tags=["health"]
+    )
+    
+    # 应用信息路由
+    async def info_handler(**kwargs):
+        stats = bootstrap.get_stats()
+        return {
+            "success": True,
+            "data": {
+                "application": "SuperRPG",
+                "version": "2.0.0",
+                "description": "模块化角色扮演游戏系统",
+                "stats": stats
+            }
+        }
+    
+    gateway.add_route(
+        path="/info",
+        method="GET",
+        handler=info_handler,
+        name="app_info",
+        tags=["info"]
+    )
+    
+    # 模块信息路由
+    async def modules_handler(**kwargs):
+        modules = bootstrap.list_modules()
+        return {
+            "success": True,
+            "data": {
+                "modules": [module.to_dict() for module in modules],
+                "loaded": bootstrap.loaded_modules
+            }
+        }
+    
+    gateway.add_route(
+        path="/modules",
+        method="GET",
+        handler=modules_handler,
+        name="modules_info",
+        tags=["modules"]
+    )
+    
+    # 扩展信息路由
+    async def extensions_handler(**kwargs):
+        if not bootstrap.extension_manager:
+            return {"success": True, "data": {"extensions": []}}
+        
         try:
-            _cfg_val = int(feature_flags.get("max_rounds")) if isinstance(feature_flags, dict) else None
-            max_rounds = _cfg_val if (_cfg_val is not None and _cfg_val > 0) else None
-        except Exception:
-            max_rounds = None
+            extensions = await bootstrap.extension_manager.registry.list_extensions()
+            return {
+                "success": True,
+                "data": {
+                    "extensions": [
+                        {
+                            "name": ext.metadata.name,
+                            "version": ext.metadata.version,
+                            "status": ext.status.value,
+                            "type": ext.metadata.extension_type.value,
+                            "description": ext.metadata.description
+                        }
+                        for ext in extensions
+                    ]
+                }
+            }
+        except Exception as e:
+            return {
+                "success": False,
+                "message": f"获取扩展信息失败: {str(e)}"
+            }
+    
+    gateway.add_route(
+        path="/extensions",
+        method="GET",
+        handler=extensions_handler,
+        name="extensions_info",
+        tags=["extensions"]
+    )
 
-        def _objectives_resolved() -> bool:
-            snap = world.snapshot()
-            objs = list(snap.get("objectives") or [])
-            if not objs:
-                return False
-            status = snap.get("objective_status") or {}
-            for nm in objs:
-                st = str(status.get(str(nm), "pending"))
-                if st not in {"done", "blocked"}:
-                    return False
-            return True
 
-        end_reason: Optional[str] = None
-        # Default to original semantics: no hostiles -> end
-        require_hostiles = bool(feature_flags.get("require_hostiles", True))
-
-        def _is_alive(nm: str) -> bool:
-            try:
-                chars = world.snapshot().get("characters", {}) or {}
-                st = chars.get(str(nm), {})
-                return int(st.get("hp", 1)) > 0
-            except Exception:
-                return True
-
-        def _living_field_names() -> List[str]:
-            # Prefer participants; else those with positions; else all characters
-            base: List[str]
-            if allowed_names:
-                base = list(allowed_names)
-            else:
-                snap = world.snapshot()
-                base = list((snap.get("positions") or {}).keys()) or list((snap.get("characters") or {}).keys())
-            return [n for n in base if _is_alive(n)]
-
-        def _hostiles_present(threshold: int = -10) -> bool:
-            names = _living_field_names()
-            if len(names) <= 1:
-                return False
-            snap_rel = (world.snapshot().get("relations") or {})
-            for i, a in enumerate(names):
-                for b in names[i+1:]:
-                    try:
-                        sc_ab = int(snap_rel.get(f"{str(a)}->{str(b)}", 0))
-                    except Exception:
-                        sc_ab = 0
-                    try:
-                        sc_ba = int(snap_rel.get(f"{str(b)}->{str(a)}", 0))
-                    except Exception:
-                        sc_ba = 0
-                    if sc_ab <= threshold or sc_ba <= threshold:
-                        return True
-            return False
-        while True:
-            try:
-                rt = world.runtime()
-                hdr_round_val = int(rt.get("round") or round_idx)
-                hdr_round = hdr_round_val if bool(rt.get("in_combat")) else round_idx
-            except Exception:
-                hdr_round = round_idx
-            current_round = hdr_round
-            await _bcast(
-                hub,
-                Msg("Host", f"第{hdr_round}回合：小队行动", "assistant"),
-                phase="round-start",
-            )
-            try:
-                turn = world.get_turn()
-                meta = turn.metadata or {}
-                rnd = int(meta.get("round") or round_idx)
-                if bool((world.runtime().get("in_combat"))):
-                    current_round = rnd
-            except Exception:
-                pass
-
-            try:
-                rt = world.runtime()
-                positions = rt.get("positions", {})
-                in_combat = bool(rt.get("in_combat"))
-                r_avail = rt.get("turn_state", {})
-                _emit(
-                    "state_update",
-                    phase="turn-state",
-                    data={
-                        "positions": {k: list(v) for k, v in positions.items()},
-                        "in_combat": in_combat,
-                        "reaction_available": r_avail,
-                    },
-                )
-            except Exception as exc:
-                _emit(
-                    "error",
-                    phase="turn-state",
-                    data={
-                        "message": f"获取回合信息失败: {exc}",
-                        "error_type": "turn_snapshot",
-                    },
-                )
-
-            snapshot = world.snapshot()
-            _emit("state_update", phase="world", turn=current_round, data={"state": snapshot})
-            await _bcast(
-                hub,
-                Msg("Host", _world_summary_text(snapshot), "assistant"),
-                phase="world-summary",
-            )
-
-            # If无敌对，则退出战斗模式但不强制结束整体流程（除非显式要求）
-            if not _hostiles_present():
-                try:
-                    if bool(world.runtime().get("in_combat")):
-                        world.end_combat()
-                except Exception:
-                    pass
-                if require_hostiles:
-                    end_reason = "场上已无敌对存活单位"
-                    break
-
-            combat_cleared = False
-            for agent in npcs_list:
-                name = getattr(agent, 'name', '')
-                # Skip turn if the character is down (hp <= 0)
-                try:
-                    sheet = (world.snapshot().get("characters") or {}).get(name, {})
-                    if int(sheet.get('hp', 1)) <= 0:
-                        _emit(
-                            "turn_start",
-                            actor=name,
-                            turn=current_round,
-                            phase="actor-turn",
-                            data={"round": current_round, "skipped": True, "reason": "down"},
-                        )
-                        _emit(
-                            "turn_end",
-                            actor=name,
-                            turn=current_round,
-                            phase="actor-turn",
-                            data={"round": current_round, "skipped": True},
-                        )
-                        continue
-                except Exception:
-                    pass
-
-                try:
-                    reset = world.reset_actor_turn(name)
-                except Exception:
-                    reset = None
-                try:
-                    st_meta = (reset.metadata or {}).get('state') if reset else None
-                except Exception:
-                    st_meta = None
-                _emit(
-                    "turn_start",
-                    actor=name,
-                    turn=current_round,
-                    phase="actor-turn",
-                    data={
-                        "round": current_round,
-                        "state": st_meta,
-                    },
-                )
-
-                # Inject a recap message for all participants before the actor decides
-                try:
-                    # Dev-only context card to per-actor log file
-                    _write_dev_context_card(name)
-                    recap_msg = _recap_for(name)
-                    if recap_msg is not None:
-                        await _bcast(hub, recap_msg, phase="context:recap")
-                except Exception:
-                    pass
-
-                out = await agent(None)
-                try:
-                    raw_text = _safe_text(out)
-                    cleaned = _strip_tool_calls_from_text(raw_text)
-                    if cleaned and cleaned.strip():
-                        msg_clean = Msg(getattr(out, "name", name), cleaned, getattr(out, "role", "assistant") or "assistant")
-                        await _bcast(
-                            hub,
-                            msg_clean,
-                            phase=f"npc:{name or agent.__class__.__name__}",
-                        )
-                except Exception:
-                    # If anything goes wrong, fall back to broadcasting the original
-                    await _bcast(
-                        hub,
-                        out,
-                        phase=f"npc:{name or agent.__class__.__name__}",
-                    )
-                await _handle_tool_calls(out, hub)
-                # After each action, if无敌对则退出战斗但继续对话流程
-                if not _hostiles_present():
-                    try:
-                        if bool(world.runtime().get("in_combat")):
-                            world.end_combat()
-                    except Exception:
-                        pass
-                    if require_hostiles:
-                        end_reason = "场上已无敌对存活单位"
-                        combat_cleared = True
-                        break
-                _emit(
-                    "turn_end",
-                    actor=name,
-                    turn=current_round,
-                    phase="actor-turn",
-                    data={"round": current_round},
-                )
-
-            _emit("turn_end", phase="round", turn=current_round, data={"round": current_round})
-            if combat_cleared:
-                break
-            round_idx += 1
-
-            if _objectives_resolved():
-                end_reason = "所有目标均已解决"
-                break
-            if max_rounds is not None and round_idx > max_rounds:
-                end_reason = f"已达到最大回合 {max_rounds}"
-                break
-
-        final_snapshot = world.snapshot()
-        _emit("state_update", phase="final", data={"state": final_snapshot})
-        await _bcast(
-            hub,
-            Msg("Host", f"自动演算结束。{('(' + end_reason + ')') if end_reason else ''}", "assistant"),
-            phase="system",
+async def generate_documentation(bootstrap: EnhancedApplicationBootstrap) -> None:
+    """生成API文档
+    
+    Args:
+        bootstrap: 应用启动器
+    """
+    if not bootstrap.api_gateway:
+        return
+    
+    try:
+        # 创建文档管理器
+        docs_manager = DocumentationManager(
+            gateway=bootstrap.api_gateway,
+            output_dir="docs"
         )
+        
+        # 添加自定义模式
+        docs_manager.add_schema("GameConfig", {
+            "type": "object",
+            "properties": {
+                "max_rounds": {"type": "integer"},
+                "turn_timeout": {"type": "integer"},
+                "require_hostiles": {"type": "boolean"}
+            }
+        })
+        
+        # 生成所有格式的文档
+        file_paths = docs_manager.generate_all_formats("superrpg_api")
+        
+        logger = bootstrap.container.resolve(Logger)
+        logger.info(f"API文档生成完成: {file_paths}")
+        
+    except Exception as e:
+        logger = bootstrap.container.resolve(Logger)
+        logger.error(f"生成API文档失败: {str(e)}")
 
 
-def _world_summary_text(snap: dict) -> str:
+async def run_game_application(bootstrap: EnhancedApplicationBootstrap) -> None:
+    """运行游戏应用
+    
+    Args:
+        bootstrap: 应用启动器
+    """
+    container = bootstrap.container
+    logger = container.resolve(Logger)
+    
     try:
-        t = int(snap.get("time_min", 0))
-    except Exception:
-        t = 0
-    hh, mm = t // 60, t % 60
-    weather = snap.get("weather", "unknown")
-    location = snap.get("location", "未知")
-    objectives = snap.get("objectives", []) or []
-    obj_status = snap.get("objective_status", {}) or {}
-    inv = snap.get("inventory", {}) or {}
-    inv_lines = []
+        # 检查是否启用游戏模式
+        app_config = container.resolve(EnhancedConfigManager).get("game", {})
+        
+        if not app_config.get("debug_mode", False):
+            logger.info("启动游戏模式...")
+            
+            # 解析游戏协调器（依赖接口以遵循DIP）
+            game_coordinator = container.resolve(IGameCoordinator)
+            
+            # 运行游戏
+            await game_coordinator.run_game()
+            
+            logger.info("游戏运行完成")
+        else:
+            logger.info("调试模式：跳过游戏运行")
+            
+            # 在调试模式下，保持应用运行
+            logger.info("应用运行中，按 Ctrl+C 停止...")
+            while True:
+                await asyncio.sleep(1)
+        
+    except Exception as e:
+        logger.error(f"游戏应用运行失败: {str(e)}")
+        raise
+
+
+def print_startup_banner(config: BootstrapConfig) -> None:
+    """打印启动横幅
+    
+    Args:
+        config: 启动器配置
+    """
+    print("=" * 80)
+    print("SuperRPG 应用程序 (模块化架构版本)")
+    print("=" * 80)
+    print(f"版本: 2.0.0")
+    print(f"Python: {sys.version}")
+    print(f"工作目录: {os.getcwd()}")
+    
+    print("\n[配置信息]")
+    print(f"  扩展系统: {'启用' if config.enable_extensions else '禁用'}")
+    print(f"  API网关: {'启用' if config.enable_api_gateway else '禁用'}")
+    print(f"  健康检查: {'启用' if config.enable_health_checks else '禁用'}")
+    print(f"  优雅关闭: {'启用' if config.enable_graceful_shutdown else '禁用'}")
+    print(f"  配置目录: {config.config_dir}")
+    
+    if config.enable_extensions:
+        print(f"  扩展目录: {config.extensions_dir}")
+    
+    print("\n[模块状态]")
+    print("  核心系统: core, event_bus, api_gateway")
+    print("  游戏系统: game_engine, character_system, world_system")
+    print("  基础设施: extension_system, documentation")
+    
+    print("=" * 80)
+
+
+async def main() -> None:
+    """应用程序主入口"""
+    # 配置日志
+    configure_logging()
+    logger = logging.getLogger(__name__)
+
+    # 创建配置
+    bootstrap_config = create_bootstrap_config()
+    app_config = create_application_config()
+
+    # 打印启动横幅
+    print_startup_banner(bootstrap_config)
+
+    bootstrap = None
     try:
-        for who, bag in inv.items():
-            if not bag:
-                continue
-            inv_lines.append(f"{who}[" + ", ".join(f"{it}:{cnt}" for it, cnt in bag.items()) + "]")
-    except Exception:
-        pass
-    positions = snap.get("positions", {}) or {}
-    pos_lines = []
-    try:
-        for nm, coord in positions.items():
-            if isinstance(coord, (list, tuple)) and len(coord) >= 2:
-                pos_lines.append(f"{nm}({coord[0]}, {coord[1]})")
-    except Exception:
-        pos_lines = []
-    chars = snap.get("characters", {}) or {}
-    char_lines = []
-    try:
-        for nm, st in chars.items():
-            hp = st.get("hp"); max_hp = st.get("max_hp")
-            if hp is not None and max_hp is not None:
-                char_lines.append(f"{nm}(HP {hp}/{max_hp})")
-    except Exception:
-        pass
+        # 创建并启动应用
+        bootstrap = EnhancedApplicationBootstrap(bootstrap_config)
+        container = await bootstrap.bootstrap(app_config)
 
-    details = [d for d in (snap.get("scene_details") or []) if isinstance(d, str) and d.strip()]
-    lines = [
-        f"环境概要：地点 {location}；时间 {hh:02d}:{mm:02d}；天气 {weather}",
-        ("目标：" + "; ".join((f"{str(o)}({obj_status.get(str(o))})" if obj_status.get(str(o)) else str(o)) for o in objectives)) if objectives else "目标：无",
-        "关系：参见系统提示，避免违背己方立场",
-        ("物品：" + "; ".join(inv_lines)) if inv_lines else "物品：无",
-        ("坐标：" + "; ".join(pos_lines)) if pos_lines else "坐标：未记录",
-        ("角色：" + "; ".join(char_lines)) if char_lines else "角色：未登记",
-    ]
-    if details:
-        # Insert details after the header line
-        lines.insert(1, "环境细节：" + "；".join(details))
-    return "\n".join(lines)
+        logger.info("应用程序启动成功")
 
+        # 设置API路由
+        await setup_api_routes(bootstrap)
 
+        # 生成API文档
+        if app_config.get("api", {}).get("enable_docs", True):
+            await generate_documentation(bootstrap)
 
-def main() -> None:
-    print("============================================================")
-    print("NPC Talk Demo (Orchestrator: main.py)")
-    print("============================================================")
+        # 运行游戏应用
+        await run_game_application(bootstrap)
 
-    # Load configs
-    prompts = load_prompts()
-    model_cfg_obj = load_model_config()
-    feature_flags = load_feature_flags()
-    story_cfg = load_story_config()
-    characters = load_characters()
+        logger.info("应用程序运行完成")
 
-    # Convert model config dataclass to mapping
-    if is_dataclass(model_cfg_obj):
-        model_cfg: Dict[str, Any] = asdict(model_cfg_obj)
-    else:
-        model_cfg = dict(getattr(model_cfg_obj, "__dict__", {}) or {})
-
-    # Build logging context under project root
-    root = project_root()
-    log_ctx = create_logging_context(base_path=root)
-
-    # Emit function adapter
-    def emit(*, event_type: str, actor=None, phase=None, turn=None, data=None) -> None:
-        ev = Event(event_type=EventType(event_type), actor=actor, phase=phase, turn=turn, data=dict(data or {}))
-        log_ctx.bus.publish(ev)
-
-    # Bind world and actions
-    world = _WorldPort()
-    tool_list, tool_dispatch = make_npc_actions(world=world_impl)
-
-    # Agent builder
-    def build_agent(name, persona, model_cfg, **kwargs):
-        return make_kimi_npc(name, persona, model_cfg, **kwargs)
-
-    try:
-        asyncio.run(
-            run_demo(
-                emit=emit,
-                build_agent=build_agent,
-                tool_fns=tool_list,
-                tool_dispatch=tool_dispatch,
-                prompts=prompts,
-                model_cfg=model_cfg,
-                feature_flags=feature_flags,
-                story_cfg=story_cfg,
-                characters=characters,
-                world=world,
-            )
-        )
     except KeyboardInterrupt:
-        pass
+        logger.info("收到中断信号，正在关闭应用程序...")
+    except Exception as e:
+        logger.error(f"应用程序运行失败: {str(e)}")
+        logger.error(traceback.format_exc())
+        print(f"\n错误详情:\n{traceback.format_exc()}")
+        sys.exit(1)
     finally:
-        log_ctx.close()
+        # 清理资源
+        if bootstrap:
+            await bootstrap.shutdown()
+
+    print("\n" + "=" * 80)
+    print("程序已正常结束")
+    print("=" * 80)
 
 
 if __name__ == "__main__":
-    main()
+    # 运行主程序
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        print("\n收到中断信号，程序退出")
+        sys.exit(0)

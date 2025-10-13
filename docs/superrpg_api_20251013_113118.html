@@ -1,0 +1,45 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>SuperRPG API</title>
+    <meta charset="utf-8">
+    <link rel="stylesheet" type="text/css" href="https://unpkg.com/swagger-ui-dist@3.52.5/swagger-ui.css">
+    <style>
+        html {
+            box-sizing: border-box;
+            overflow: -moz-scrollbars-vertical;
+            overflow-y: scroll;
+        }
+        *, *:before, *:after {
+            box-sizing: inherit;
+        }
+        body {
+            margin: 0;
+            background: #fafafa;
+        }
+    </style>
+</head>
+<body>
+    <div id="swagger-ui"></div>
+    <script src="https://unpkg.com/swagger-ui-dist@3.52.5/swagger-ui-bundle.js"></script>
+    <script src="https://unpkg.com/swagger-ui-dist@3.52.5/swagger-ui-standalone-preset.js"></script>
+    <script>
+        window.onload = function() {
+            const ui = SwaggerUIBundle({
+                url: '{"openapi": "3.0.0", "info": {"title": "SuperRPG API", "version": "1.0.0", "description": "SuperRPG\u6e38\u620fAPI\u6587\u6863"}, "servers": [{"url": "http://localhost:8000", "description": "\u5f00\u53d1\u670d\u52a1\u5668"}], "paths": {"/health": {"get": {"summary": "health_check", "description": null, "tags": ["health"], "parameters": [], "responses": {"200": {"description": "\u6210\u529f\u54cd\u5e94", "content": {"application/json": {"schema": {"type": "object"}, "example": {"success": true, "data": {}}}}}, "400": {"description": "\u8bf7\u6c42\u9519\u8bef", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/ErrorResponse"}}}}, "404": {"description": "\u8d44\u6e90\u672a\u627e\u5230", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/ErrorResponse"}}}}, "500": {"description": "\u670d\u52a1\u5668\u9519\u8bef", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/ErrorResponse"}}}}}}}, "/info": {"get": {"summary": "app_info", "description": null, "tags": ["info"], "parameters": [], "responses": {"200": {"description": "\u6210\u529f\u54cd\u5e94", "content": {"application/json": {"schema": {"type": "object"}, "example": {"success": true, "data": {}}}}}, "400": {"description": "\u8bf7\u6c42\u9519\u8bef", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/ErrorResponse"}}}}, "404": {"description": "\u8d44\u6e90\u672a\u627e\u5230", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/ErrorResponse"}}}}, "500": {"description": "\u670d\u52a1\u5668\u9519\u8bef", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/ErrorResponse"}}}}}}}, "/modules": {"get": {"summary": "modules_info", "description": null, "tags": ["modules"], "parameters": [], "responses": {"200": {"description": "\u6210\u529f\u54cd\u5e94", "content": {"application/json": {"schema": {"type": "object"}, "example": {"success": true, "data": {}}}}}, "400": {"description": "\u8bf7\u6c42\u9519\u8bef", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/ErrorResponse"}}}}, "404": {"description": "\u8d44\u6e90\u672a\u627e\u5230", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/ErrorResponse"}}}}, "500": {"description": "\u670d\u52a1\u5668\u9519\u8bef", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/ErrorResponse"}}}}}}}, "/extensions": {"get": {"summary": "extensions_info", "description": null, "tags": ["extensions"], "parameters": [], "responses": {"200": {"description": "\u6210\u529f\u54cd\u5e94", "content": {"application/json": {"schema": {"type": "object"}, "example": {"success": true, "data": {}}}}}, "400": {"description": "\u8bf7\u6c42\u9519\u8bef", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/ErrorResponse"}}}}, "404": {"description": "\u8d44\u6e90\u672a\u627e\u5230", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/ErrorResponse"}}}}, "500": {"description": "\u670d\u52a1\u5668\u9519\u8bef", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/ErrorResponse"}}}}}}}}, "components": {"schemas": {"ApiResponse": {"type": "object", "properties": {"success": {"type": "boolean", "description": "\u8bf7\u6c42\u662f\u5426\u6210\u529f"}, "message": {"type": "string", "description": "\u54cd\u5e94\u6d88\u606f"}, "data": {"description": "\u54cd\u5e94\u6570\u636e"}, "code": {"type": "string", "description": "\u54cd\u5e94\u4ee3\u7801"}, "timestamp": {"type": "string", "format": "date-time", "description": "\u54cd\u5e94\u65f6\u95f4\u6233"}, "request_id": {"type": "string", "description": "\u8bf7\u6c42ID"}, "metadata": {"type": "object", "description": "\u5143\u6570\u636e"}}, "required": ["success", "message"]}, "ErrorResponse": {"type": "object", "properties": {"success": {"type": "boolean", "example": false}, "message": {"type": "string", "description": "\u9519\u8bef\u6d88\u606f"}, "code": {"type": "string", "description": "\u9519\u8bef\u4ee3\u7801"}, "details": {"type": "object", "description": "\u9519\u8bef\u8be6\u60c5"}}, "required": ["success", "message"]}, "PagedResponse": {"type": "object", "properties": {"success": {"type": "boolean"}, "message": {"type": "string"}, "data": {"type": "array", "items": {}, "description": "\u6570\u636e\u5217\u8868"}, "pagination": {"type": "object", "properties": {"page": {"type": "integer", "description": "\u5f53\u524d\u9875\u7801"}, "page_size": {"type": "integer", "description": "\u6bcf\u9875\u5927\u5c0f"}, "total": {"type": "integer", "description": "\u603b\u8bb0\u5f55\u6570"}, "total_pages": {"type": "integer", "description": "\u603b\u9875\u6570"}, "has_next": {"type": "boolean", "description": "\u662f\u5426\u6709\u4e0b\u4e00\u9875"}, "has_prev": {"type": "boolean", "description": "\u662f\u5426\u6709\u4e0a\u4e00\u9875"}}}}, "required": ["success", "message", "pagination"]}}}, "tags": [{"name": "default", "description": "default\u76f8\u5173API"}, {"name": "health", "description": "health\u76f8\u5173API"}, {"name": "info", "description": "info\u76f8\u5173API"}, {"name": "modules", "description": "modules\u76f8\u5173API"}, {"name": "extensions", "description": "extensions\u76f8\u5173API"}]}',
+                dom_id: '#swagger-ui',
+                deepLinking: true,
+                presets: [
+                    SwaggerUIBundle.presets.apis,
+                    SwaggerUIStandalonePreset
+                ],
+                plugins: [
+                    SwaggerUIBundle.plugins.DownloadUrl
+                ]
+            });
+        }
+    </script>
+</body>
+</html>
+        

@@ -1,0 +1,56 @@
+{
+  "id": "template_001",
+  "name": "角色对话模板",
+  "description": "用于生成角色对话的提示模板，包含系统指令、上下文、历史记录和当前输入等部分。",
+  "sections": [
+    {
+      "id": "section_001",
+      "content": "你是{character_name}，{character_description}。\n\n你的性格特点：{personality_summary}\n\n请根据你的角色设定，以第一人称回应。保持角色的语言风格和思维模式，不要脱离角色设定。",
+      "section_type": "SYSTEM",
+      "priority": 1,
+      "enabled": true
+    },
+    {
+      "id": "section_002",
+      "content": "当前场景：{scenario}\n\n时间：{time}\n地点：{location}\n环境：{environment}",
+      "section_type": "CONTEXT",
+      "priority": 2,
+      "enabled": true
+    },
+    {
+      "id": "section_003",
+      "content": "最近的对话历史：\n{chat_history}",
+      "section_type": "HISTORY",
+      "priority": 3,
+      "enabled": true
+    },
+    {
+      "id": "section_004",
+      "content": "当前输入：{current_input}\n\n请以角色的身份回应这个输入。",
+      "section_type": "INPUT",
+      "priority": 4,
+      "enabled": true
+    },
+    {
+      "id": "section_005",
+      "content": "回应要求：\n1. 保持角色一致性\n2. 使用符合角色身份的语言风格\n3. 回应要自然流畅，不要过于生硬\n4. 可以适当加入角色的口头禅或习惯用语\n5. 如果涉及专业知识，要体现角色的专业背景",
+      "section_type": "INSTRUCTION",
+      "priority": 5,
+      "enabled": true
+    }
+  ],
+  "variables": [
+    "character_name",
+    "character_description",
+    "personality_summary",
+    "scenario",
+    "time",
+    "location",
+    "environment",
+    "chat_history",
+    "current_input"
+  ],
+  "is_active": true,
+  "created_at": "2023-01-15T14:00:00Z",
+  "updated_at": "2023-01-15T14:00:00Z"
+}

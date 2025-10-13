@@ -43,3 +43,10 @@ node_modules/
 
 # Project logs
 logs/
+
+# Sensitive configuration
+configs/model.json
+
+data/
+configs/model.json
+configs/model.json

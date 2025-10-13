@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SuperRPG 架构文档</title>
+    <link rel="stylesheet" href="styles/main.css">
+    <link rel="stylesheet" href="styles/highlight.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- 侧边栏导航 -->
+        <nav class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h1 class="logo">
+                    <i class="fas fa-dice-d20"></i>
+                    SuperRPG
+                </h1>
+                <div class="version">v2.0.0</div>
+            </div>
+            
+            <div class="search-container">
+                <input type="text" id="search-input" placeholder="搜索文档..." class="search-input">
+                <i class="fas fa-search search-icon"></i>
+            </div>
+            
+            <div class="nav-menu">
+                <div class="nav-section">
+                    <h3 class="nav-title">架构概览</h3>
+                    <ul class="nav-list">
+                        <li><a href="#overview" class="nav-link active" data-page="overview">
+                            <i class="fas fa-home"></i> 项目介绍
+                        </a></li>
+                        <li><a href="#architecture" class="nav-link" data-page="architecture">
+                            <i class="fas fa-sitemap"></i> 架构设计
+                        </a></li>
+                        <li><a href="#principles" class="nav-link" data-page="principles">
+                            <i class="fas fa-balance-scale"></i> 设计原则
+                        </a></li>
+                    </ul>
+                </div>
+                
+                <div class="nav-section">
+                    <h3 class="nav-title">分层架构</h3>
+                    <ul class="nav-list">
+                        <li><a href="#domain-layer" class="nav-link" data-page="domain-layer">
+                            <i class="fas fa-layer-group"></i> 领域层
+                        </a></li>
+                        <li><a href="#application-layer" class="nav-link" data-page="application-layer">
+                            <i class="fas fa-cogs"></i> 应用层
+                        </a></li>
+                        <li><a href="#infrastructure-layer" class="nav-link" data-page="infrastructure-layer">
+                            <i class="fas fa-server"></i> 基础设施层
+                        </a></li>
+                        <li><a href="#adapters-layer" class="nav-link" data-page="adapters-layer">
+                            <i class="fas fa-plug"></i> 适配器层
+                        </a></li>
+                    </ul>
+                </div>
+                
+                <div class="nav-section">
+                    <h3 class="nav-title">核心服务</h3>
+                    <ul class="nav-list">
+                        <li><a href="#game-engine" class="nav-link" data-page="game-engine">
+                            <i class="fas fa-gamepad"></i> 游戏引擎
+                        </a></li>
+                        <li><a href="#turn-manager" class="nav-link" data-page="turn-manager">
+                            <i class="fas fa-clock"></i> 回合管理器
+                        </a></li>
+                        <li><a href="#message-handler" class="nav-link" data-page="message-handler">
+                            <i class="fas fa-envelope"></i> 消息处理器
+                        </a></li>
+                        <li><a href="#agent-service" class="nav-link" data-page="agent-service">
+                            <i class="fas fa-robot"></i> 代理服务
+                        </a></li>
+                    </ul>
+                </div>
+                
+                <div class="nav-section">
+                    <h3 class="nav-title">API 文档</h3>
+                    <ul class="nav-list">
+                        <li><a href="#commands" class="nav-link" data-page="commands">
+                            <i class="fas fa-terminal"></i> 命令接口
+                        </a></li>
+                        <li><a href="#queries" class="nav-link" data-page="queries">
+                            <i class="fas fa-search"></i> 查询接口
+                        </a></li>
+                        <li><a href="#events" class="nav-link" data-page="events">
+                            <i class="fas fa-bolt"></i> 事件系统
+                        </a></li>
+                    </ul>
+                </div>
+                
+                <div class="nav-section">
+                    <h3 class="nav-title">示例代码</h3>
+                    <ul class="nav-list">
+                        <li><a href="#character-example" class="nav-link" data-page="character-example">
+                            <i class="fas fa-user"></i> 角色管理
+                        </a></li>
+                        <li><a href="#world-example" class="nav-link" data-page="world-example">
+                            <i class="fas fa-globe"></i> 世界状态
+                        </a></li>
+                        <li><a href="#combat-example" class="nav-link" data-page="combat-example">
+                            <i class="fas fa-sword"></i> 战斗系统
+                        </a></li>
+                        <li><a href="#event-example" class="nav-link" data-page="event-example">
+                            <i class="fas fa-broadcast-tower"></i> 事件处理
+                        </a></li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="sidebar-footer">
+                <button id="theme-toggle" class="theme-toggle-btn">
+                    <i class="fas fa-moon"></i>
+                </button>
+                <div class="footer-info">
+                    <a href="https://github.com/superrpg" target="_blank">
+                        <i class="fab fa-github"></i> GitHub
+                    </a>
+                </div>
+            </div>
+        </nav>
+        
+        <!-- 主内容区域 -->
+        <main class="main-content">
+            <header class="content-header">
+                <button id="sidebar-toggle" class="sidebar-toggle-btn">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <div class="breadcrumb" id="breadcrumb">
+                    <span class="breadcrumb-item">首页</span>
+                </div>
+                <div class="header-actions">
+                    <button id="print-btn" class="action-btn">
+                        <i class="fas fa-print"></i>
+                    </button>
+                </div>
+            </header>
+            
+            <div class="content-body" id="content">
+                <!-- 内容将通过JavaScript动态加载 -->
+                <div class="loading">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    <span>加载中...</span>
+                </div>
+            </div>
+        </main>
+    </div>
+    
+    <!-- 搜索结果弹窗 -->
+    <div id="search-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>搜索结果</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="search-results"></div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="scripts/theme.js"></script>
+    <script src="scripts/navigation.js"></script>
+    <script src="scripts/highlight.js"></script>
+    <script src="scripts/architecture-charts.js"></script>
+    <script src="scripts/page-generators.js"></script>
+    <script src="scripts/page-generators-extended.js"></script>
+    <script src="scripts/api-generators.js"></script>
+    <script src="scripts/example-generators.js"></script>
+    <script src="scripts/page-generators-complete.js"></script>
+    <script src="scripts/search.js"></script>
+    <script src="scripts/main.js"></script>
+</body>
+</html>

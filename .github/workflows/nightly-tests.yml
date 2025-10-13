@@ -1,0 +1,352 @@
+name: 夜间测试
+
+on:
+  schedule:
+    # 每天凌晨2点运行
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+
+jobs:
+  # 全量测试套件
+  full-test-suite:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        python-version: ['3.8', '3.9', '3.10', '3.11']
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: 设置Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+    
+    - name: 安装依赖
+      run: |
+        python -m pip install --upgrade pip
+        pip install -e .
+        pip install pytest pytest-cov pytest-mock pytest-asyncio pytest-xdist
+        pip install matplotlib pandas psutil
+    
+    - name: 运行全量测试套件
+      run: |
+        pytest tests/ -v --cov=src --cov-report=xml --cov-report=html --cov-fail-under=85 -n auto
+    
+    - name: 上传覆盖率报告
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./coverage.xml
+        flags: nightly
+        name: codecov-umbrella-${{ matrix.python-version }}
+
+  # 性能回归测试
+  performance-regression:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: 设置Python环境
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+    
+    - name: 安装依赖
+      run: |
+        python -m pip install --upgrade pip
+        pip install -e .
+        pip install matplotlib pandas psutil
+    
+    - name: 启动应用服务
+      run: |
+        python src/main.py &
+        sleep 10
+    
+    - name: 运行性能回归测试
+      run: |
+        python tests/test_performance.py --baseline
+    
+    - name: 分析性能回归
+      run: |
+        python -c "
+        import json
+        import os
+        from pathlib import Path
+        
+        # 简单的性能回归检查逻辑
+        results_dir = Path('performance_results')
+        if results_dir.exists():
+            latest_results = list(results_dir.glob('*_report.json'))[-1]
+            with open(latest_results, 'r') as f:
+                data = json.load(f)
+            
+            metrics = data.get('metrics', {})
+            avg_response_time = metrics.get('avg_response_time', 0)
+            
+            # 检查平均响应时间是否超过阈值
+            if avg_response_time > 1000:  # 1000ms阈值
+                print(f'性能回归警告: 平均响应时间 {avg_response_time}ms 超过阈值')
+                exit(1)
+            
+            print(f'性能检查通过: 平均响应时间 {avg_response_time}ms')
+        "
+    
+    - name: 上传性能报告
+      uses: actions/upload-artifact@v3
+      with:
+        name: nightly-performance-results
+        path: performance_results/
+
+  # 内存泄漏测试
+  memory-leak-test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: 设置Python环境
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+    
+    - name: 安装依赖
+      run: |
+        python -m pip install --upgrade pip
+        pip install -e .
+        pip install pytest pytest-mock memory_profiler psutil
+    
+    - name: 运行内存泄漏测试
+      run: |
+        python -m memory_profiler tests/test_memory_leaks.py
+    
+    - name: 上传内存分析报告
+      uses: actions/upload-artifact@v3
+      with:
+        name: memory-profile-results
+        path: memory_profile_results/
+
+  # 负载测试
+  load-test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: 设置Python环境
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+    
+    - name: 安装依赖
+      run: |
+        python -m pip install --upgrade pip
+        pip install -e .
+        pip install matplotlib pandas psutil locust
+    
+    - name: 启动应用服务
+      run: |
+        python src/main.py &
+        sleep 10
+    
+    - name: 运行负载测试
+      run: |
+        locust --headless --users 50 --spawn-rate 5 --run-time 60s --host http://localhost:8000 -f tests/locustfile.py
+    
+    - name: 上传负载测试报告
+      uses: actions/upload-artifact@v3
+      with:
+        name: load-test-results
+        path: locust_report.html
+
+  # 依赖更新检查
+  dependency-update-check:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: 设置Python环境
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+    
+    - name: 安装依赖
+      run: |
+        python -m pip install --upgrade pip
+        pip install safety pip-audit
+    
+    - name: 检查依赖安全性
+      run: |
+        safety check --json --output safety-report.json || true
+        pip-audit --format=json --output=audit-report.json || true
+    
+    - name: 检查过时依赖
+      run: |
+        pip list --outdated --format=json > outdated-deps.json || true
+    
+    - name: 创建依赖报告
+      run: |
+        python -c "
+        import json
+        from datetime import datetime
+        
+        report = {
+            'timestamp': datetime.now().isoformat(),
+            'safety_report': None,
+            'audit_report': None,
+            'outdated_dependencies': None
+        }
+        
+        try:
+            with open('safety-report.json', 'r') as f:
+                report['safety_report'] = json.load(f)
+        except FileNotFoundError:
+            pass
+        
+        try:
+            with open('audit-report.json', 'r') as f:
+                report['audit_report'] = json.load(f)
+        except FileNotFoundError:
+            pass
+        
+        try:
+            with open('outdated-deps.json', 'r') as f:
+                report['outdated_dependencies'] = json.load(f)
+        except FileNotFoundError:
+            pass
+        
+        with open('dependency-report.json', 'w') as f:
+            json.dump(report, f, indent=2)
+        "
+    
+    - name: 上传依赖报告
+      uses: actions/upload-artifact@v3
+      with:
+        name: dependency-reports
+        path: |
+          safety-report.json
+          audit-report.json
+          outdated-deps.json
+          dependency-report.json
+
+  # 测试报告汇总
+  test-summary:
+    runs-on: ubuntu-latest
+    needs: [full-test-suite, performance-regression, memory-leak-test, load-test]
+    if: always()
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: 下载所有测试结果
+      uses: actions/download-artifact@v3
+      with:
+        path: all-results/
+    
+    - name: 创建测试汇总报告
+      run: |
+        python -c "
+        import json
+        import os
+        from pathlib import Path
+        from datetime import datetime
+        
+        # 收集所有测试结果
+        results_dir = Path('all-results')
+        summary = {
+            'timestamp': datetime.now().isoformat(),
+            'workflow_run_id': os.environ.get('GITHUB_RUN_ID', 'unknown'),
+            'test_results': {},
+            'performance_metrics': {},
+            'memory_profile': {},
+            'load_test': {},
+            'status': 'success'
+        }
+        
+        # 处理覆盖率报告
+        coverage_files = list(results_dir.rglob('coverage.xml'))
+        if coverage_files:
+            summary['coverage_available'] = True
+        else:
+            summary['coverage_available'] = False
+            summary['status'] = 'partial_failure'
+        
+        # 处理性能结果
+        perf_results = list(results_dir.rglob('*_report.json'))
+        if perf_results:
+            for perf_file in perf_results:
+                try:
+                    with open(perf_file, 'r') as f:
+                        perf_data = json.load(f)
+                    summary['performance_metrics'][perf_file.stem] = perf_data.get('metrics', {})
+                except Exception as e:
+                    print(f'Error processing {perf_file}: {e}')
+                    summary['status'] = 'partial_failure'
+        
+        # 处理内存分析结果
+        memory_results = list(results_dir.glob('memory-profile-results/*'))
+        if memory_results:
+            summary['memory_profile']['available'] = True
+        else:
+            summary['memory_profile']['available'] = False
+            summary['status'] = 'partial_failure'
+        
+        # 处理负载测试结果
+        load_results = list(results_dir.glob('load-test-results/*'))
+        if load_results:
+            summary['load_test']['available'] = True
+        else:
+            summary['load_test']['available'] = False
+            summary['status'] = 'partial_failure'
+        
+        # 保存汇总报告
+        with open('nightly-test-summary.json', 'w') as f:
+            json.dump(summary, f, indent=2)
+        
+        print(f'夜间测试汇总完成，状态: {summary[\"status\"]}')
+        "
+    
+    - name: 上传汇总报告
+      uses: actions/upload-artifact@v3
+      with:
+        name: nightly-test-summary
+        path: nightly-test-summary.json
+    
+    - name: 发送通知
+      if: failure()
+      run: |
+        echo "夜间测试失败，请检查测试结果"
+        # 这里可以添加发送通知的逻辑，如发送邮件、Slack消息等
+
+  # 清理旧的测试结果
+  cleanup:
+    runs-on: ubuntu-latest
+    needs: [test-summary]
+    
+    steps:
+    - name: 清理7天前的测试结果
+      uses: actions/github-script@v6
+      with:
+        script: |
+          const artifacts = await github.rest.actions.listWorkflowRunArtifacts({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            run_id: context.runId,
+          });
+          
+          const sevenDaysAgo = new Date();
+          sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+          
+          for (const artifact of artifacts.data.artifacts) {
+            const createdDate = new Date(artifact.created_at);
+            if (createdDate < sevenDaysAgo) {
+              await github.rest.actions.deleteArtifact({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                artifact_id: artifact.id,
+              });
+              console.log(`Deleted old artifact: ${artifact.name}`);
+            }
+          }

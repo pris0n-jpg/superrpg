@@ -1,0 +1,149 @@
+{
+  "id": "lorebook_001",
+  "name": "星辰魔法体系",
+  "description": "关于星辰魔法的知识体系，包括咒语、仪式和历史背景。这个传说书记录了古老的星辰魔法知识，由星辰使者代代相传。",
+  "version": "1.0.0",
+  "tags": ["魔法", "星辰", "知识", "咒语"],
+  "entries": [
+    {
+      "id": "entry_001",
+      "title": "星光治疗术",
+      "content": "星光治疗术是一种基础但有效的治疗法术，通过引导星光能量来修复伤口。施法者需要在夜空下，伸出手掌集中精神，感受星光的温暖。咒语为：'星光如水，治愈如泉'。\n\n施法步骤：\n1. 找到一片开阔地，能够清楚看到夜空\n2. 伸出右手手掌，面向天空\n3. 轻声念出咒语，同时感受星光流入手中\n4. 将充满星光能量的手掌放在伤口上\n5. 保持专注，直到感觉到暖流传遍伤口\n\n注意事项：此法术在月光充足时效果最佳，新月夜晚几乎无效。",
+      "keywords": [
+        {
+          "pattern": "治疗",
+          "type": "EXACT",
+          "case_sensitive": false,
+          "weight": 10
+        },
+        {
+          "pattern": "星光",
+          "type": "EXACT",
+          "case_sensitive": false,
+          "weight": 8
+        },
+        {
+          "pattern": "伤口",
+          "type": "EXACT",
+          "case_sensitive": false,
+          "weight": 5
+        },
+        {
+          "pattern": "治愈",
+          "type": "EXACT",
+          "case_sensitive": false,
+          "weight": 7
+        }
+      ],
+      "activation_rule": {
+        "type": "ANY",
+        "priority": 1,
+        "max_activations": 3,
+        "cooldown_seconds": 60
+      },
+      "tags": ["法术", "治疗", "星光", "基础"],
+      "metadata": {
+        "difficulty": "初级",
+        "mana_cost": "低",
+        "casting_time": "10分钟",
+        "author": "艾莉娅·星辰使者"
+      },
+      "created_at": "2023-01-15T12:00:00Z",
+      "updated_at": "2023-01-15T12:00:00Z"
+    },
+    {
+      "id": "entry_002",
+      "title": "星辰预言",
+      "content": "古老的星辰预言描述了当七颗星辰连成一线时，将出现一位能够掌握星辰力量的使者。这位使者将拥有治愈伤痛、预见未来的能力，并将在黑暗时期引导迷失的灵魂。预言的最后提到：'当星辰黯淡时，使者之心将成为最后的灯塔。'\n\n预言的完整文本：\n'七星连一线，黑暗降临日，\n星辰使者现，光明重现时。\n治愈凡人伤，预见未来事，\n引领迷失魂，破除一切难。\n星辰黯淡夜，使者心灯亮，\n成为最后光，照亮前方路。'\n\n历史记载，这个预言已经流传了数千年，多位星辰使者都曾试图完全理解其含义，但至今仍有未解之谜。",
+      "keywords": [
+        {
+          "pattern": "预言",
+          "type": "EXACT",
+          "case_sensitive": false,
+          "weight": 10
+        },
+        {
+          "pattern": "星辰",
+          "type": "EXACT",
+          "case_sensitive": false,
+          "weight": 8
+        },
+        {
+          "pattern": "使者",
+          "type": "EXACT",
+          "case_sensitive": false,
+          "weight": 7
+        },
+        {
+          "pattern": "未来",
+          "type": "EXACT",
+          "case_sensitive": false,
+          "weight": 6
+        }
+      ],
+      "activation_rule": {
+        "type": "ANY",
+        "priority": 2,
+        "max_activations": 5,
+        "cooldown_seconds": 120
+      },
+      "tags": ["预言", "星辰", "使者", "历史"],
+      "metadata": {
+        "source": "古代卷轴",
+        "authenticity": "已验证",
+        "age": "千年以上",
+        "translator": "艾莉娅·星辰使者"
+      },
+      "created_at": "2023-01-15T12:30:00Z",
+      "updated_at": "2023-01-15T12:30:00Z"
+    },
+    {
+      "id": "entry_003",
+      "title": "星象解读",
+      "content": "星象解读是星辰魔法的基础技能。通过观察天空中星辰的位置、亮度和运动，星辰使者可以获取关于过去、现在和未来的信息。\n\n基本星象含义：\n- 北极星明亮：指引和保护的力量增强\n- 流星划过：变化和转折的预兆\n- 月圆星稀：情感和直觉的力量达到顶峰\n- 群星闪烁：智慧和洞察力的增强\n\n解读步骤：\n1. 选择一个安静的观星地点\n2. 放空心灵，专注于夜空\n3. 观察星辰的排列和亮度\n4. 记录第一印象和感受\n5. 对照星象图谱进行解读\n\n初学者建议从简单的单个星象开始，逐步学习复杂的星象组合。",
+      "keywords": [
+        {
+          "pattern": "星象",
+          "type": "EXACT",
+          "case_sensitive": false,
+          "weight": 10
+        },
+        {
+          "pattern": "解读",
+          "type": "EXACT",
+          "case_sensitive": false,
+          "weight": 8
+        },
+        {
+          "pattern": "占卜",
+          "type": "EXACT",
+          "case_sensitive": false,
+          "weight": 6
+        },
+        {
+          "pattern": "预测",
+          "type": "EXACT",
+          "case_sensitive": false,
+          "weight": 5
+        }
+      ],
+      "activation_rule": {
+        "type": "ANY",
+        "priority": 1,
+        "max_activations": 10,
+        "cooldown_seconds": 30
+      },
+      "tags": ["技能", "星象", "占卜", "基础"],
+      "metadata": {
+        "difficulty": "初级",
+        "prerequisite": "无",
+        "practice_time": "1个月",
+        "tools_required": ["星图", "观星镜"]
+      },
+      "created_at": "2023-01-15T13:00:00Z",
+      "updated_at": "2023-01-15T13:00:00Z"
+    }
+  ],
+  "created_at": "2023-01-15T10:00:00Z",
+  "updated_at": "2023-01-15T10:00:00Z"
+}

@@ -1,0 +1,118 @@
+{
+  "application": {
+    "name": "SuperRPG Demo",
+    "version": "2.0.0",
+    "description": "SuperRPG 演示应用配置",
+    "debug": true,
+    "log_level": "INFO"
+  },
+  "database": {
+    "url": "sqlite:///demo_data/demo.db",
+    "echo": false,
+    "pool_size": 10,
+    "max_overflow": 20
+  },
+  "api": {
+    "host": "localhost",
+    "port": 3010,
+    "enable_cors": true,
+    "enable_docs": true,
+    "rate_limit": {
+      "enabled": false,
+      "requests_per_minute": 100
+    },
+    "auth": {
+      "enabled": false,
+      "secret_key": "demo-secret-key-change-in-production"
+    }
+  },
+  "logging": {
+    "level": "INFO",
+    "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    "file": "demo_data/logs/demo.log",
+    "max_file_size": "10MB",
+    "backup_count": 5,
+    "enable_console": true
+  },
+  "features": {
+    "enable_character_cards": true,
+    "enable_lorebooks": true,
+    "enable_prompts": true,
+    "enable_events": true,
+    "enable_extensions": false,
+    "enable_api_gateway": true
+  },
+  "services": {
+    "character_service": {
+      "max_characters_per_user": 50,
+      "enable_import_export": true,
+      "supported_formats": ["json", "png_base64"]
+    },
+    "lorebook_service": {
+      "max_lorebooks_per_user": 20,
+      "max_entries_per_lorebook": 100,
+      "max_keywords_per_entry": 10,
+      "default_activation_limit": 5
+    },
+    "prompt_service": {
+      "max_templates_per_user": 30,
+      "max_sections_per_template": 10,
+      "default_token_limit": 2048,
+      "supported_providers": ["openai", "anthropic", "cohere"]
+    },
+    "event_service": {
+      "max_events_per_second": 1000,
+      "event_retention_days": 30,
+      "enable_event_persistence": false
+    }
+  },
+  "ai": {
+    "default_provider": "openai",
+    "models": {
+      "openai": {
+        "chat": "gpt-3.5-turbo",
+        "completion": "text-davinci-003",
+        "embedding": "text-embedding-ada-002"
+      },
+      "anthropic": {
+        "chat": "claude-3-sonnet-20240229",
+        "completion": "claude-2.1"
+      }
+    },
+    "temperature": 0.7,
+    "max_tokens": 1000,
+    "timeout": 30
+  },
+  "storage": {
+    "base_path": "demo_data",
+    "character_cards_path": "demo_data/characters",
+    "lorebooks_path": "demo_data/lorebooks",
+    "prompts_path": "demo_data/templates",
+    "logs_path": "demo_data/logs",
+    "temp_path": "demo_data/temp"
+  },
+  "demo": {
+    "auto_load_sample_data": true,
+    "sample_data_path": "demo_data/sample",
+    "enable_interactive_mode": true,
+    "show_tips": true,
+    "auto_run_scenarios": true
+  },
+  "performance": {
+    "enable_caching": true,
+    "cache_ttl": 300,
+    "enable_metrics": true,
+    "metrics_retention_hours": 24
+  },
+  "security": {
+    "enable_input_validation": true,
+    "enable_output_sanitization": true,
+    "max_request_size": "1MB",
+    "allowed_mime_types": ["application/json", "text/plain"],
+    "rate_limiting": {
+      "enabled": false,
+      "requests_per_minute": 100,
+      "burst_size": 200
+    }
+  }
+}

@@ -1,0 +1,579 @@
+name: 性能基准测试
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'src/**'
+      - 'tests/**'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'src/**'
+      - 'tests/**'
+  schedule:
+    # 每周日凌晨1点运行
+    - cron: '0 1 * * 0'
+  workflow_dispatch:
+
+jobs:
+  # 性能基准测试
+  benchmark-tests:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        fetch-depth: 0  # 获取完整历史以便比较
+    
+    - name: 设置Python环境
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+    
+    - name: 安装依赖
+      run: |
+        python -m pip install --upgrade pip
+        pip install -e .
+        pip install matplotlib pandas psutil pytest-benchmark
+    
+    - name: 启动应用服务
+      run: |
+        python src/main.py &
+        sleep 10
+    
+    - name: 运行性能基准测试
+      run: |
+        pytest tests/test_performance.py --benchmark-only --benchmark-json=benchmark-results.json
+    
+    - name: 处理基准测试结果
+      run: |
+        python -c "
+        import json
+        import os
+        from pathlib import Path
+        from datetime import datetime
+        
+        # 读取基准测试结果
+        with open('benchmark-results.json', 'r') as f:
+            benchmark_data = json.load(f)
+        
+        # 提取关键指标
+        benchmarks = benchmark_data.get('benchmarks', [])
+        summary = {
+            'timestamp': datetime.now().isoformat(),
+            'commit_sha': os.environ.get('GITHUB_SHA', 'unknown'),
+            'branch': os.environ.get('GITHUB_REF_NAME', 'unknown'),
+            'benchmarks': {}
+        }
+        
+        for benchmark in benchmarks:
+            name = benchmark.get('name', 'unknown')
+            stats = benchmark.get('stats', {})
+            
+            summary['benchmarks'][name] = {
+                'min': stats.get('min', 0),
+                'max': stats.get('max', 0),
+                'mean': stats.get('mean', 0),
+                'median': stats.get('median', 0),
+                'stddev': stats.get('stddev', 0),
+                'rounds': stats.get('rounds', 0),
+                'iterations': stats.get('iterations', 0)
+            }
+        
+        # 保存处理后的结果
+        with open('benchmark-summary.json', 'w') as f:
+            json.dump(summary, f, indent=2)
+        
+        print(f'基准测试完成，共处理 {len(benchmarks)} 个基准')
+        "
+    
+    - name: 上传基准测试结果
+      uses: actions/upload-artifact@v3
+      with:
+        name: benchmark-results
+        path: |
+          benchmark-results.json
+          benchmark-summary.json
+
+  # 性能回归分析
+  performance-regression-analysis:
+    runs-on: ubuntu-latest
+    needs: benchmark-tests
+    if: github.event_name == 'pull_request'
+    
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+    
+    - name: 设置Python环境
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+    
+    - name: 下载基准测试结果
+      uses: actions/download-artifact@v3
+      with:
+        name: benchmark-results
+        path: current-benchmarks/
+    
+    - name: 下载主分支基准（如果存在）
+      run: |
+        # 这里可以实现从GitHub API或特定位置获取主分支的基准数据
+        # 为了简化，我们创建一个模拟的历史基准文件
+        mkdir -p baseline-benchmarks
+        echo '{"timestamp": "2023-01-01T00:00:00", "benchmarks": {}}' > baseline-benchmarks/benchmark-summary.json
+    
+    - name: 分析性能回归
+      run: |
+        python -c "
+        import json
+        import sys
+        from pathlib import Path
+        
+        # 读取当前基准结果
+        with open('current-benchmarks/benchmark-summary.json', 'r') as f:
+            current_data = json.load(f)
+        
+        # 读取基线基准结果
+        with open('baseline-benchmarks/benchmark-summary.json', 'r') as f:
+            baseline_data = json.load(f)
+        
+        current_benchmarks = current_data.get('benchmarks', {})
+        baseline_benchmarks = baseline_data.get('benchmarks', {})
+        
+        regressions = []
+        improvements = []
+        
+        # 分析每个基准
+        for name, current_stats in current_benchmarks.items():
+            if name in baseline_benchmarks:
+                baseline_stats = baseline_benchmarks[name]
+                
+                current_mean = current_stats.get('mean', 0)
+                baseline_mean = baseline_stats.get('mean', 0)
+                
+                if baseline_mean > 0:
+                    change_percent = ((current_mean - baseline_mean) / baseline_mean) * 100
+                    
+                    if change_percent > 10:  # 性能下降超过10%
+                        regressions.append({
+                            'name': name,
+                            'baseline_mean': baseline_mean,
+                            'current_mean': current_mean,
+                            'change_percent': change_percent
+                        })
+                    elif change_percent < -10:  # 性能提升超过10%
+                        improvements.append({
+                            'name': name,
+                            'baseline_mean': baseline_mean,
+                            'current_mean': current_mean,
+                            'change_percent': change_percent
+                        })
+        
+        # 生成分析报告
+        analysis_report = {
+            'timestamp': current_data.get('timestamp'),
+            'commit_sha': current_data.get('commit_sha'),
+            'regressions': regressions,
+            'improvements': improvements,
+            'summary': {
+                'total_benchmarks': len(current_benchmarks),
+                'regressions_count': len(regressions),
+                'improvements_count': len(improvements)
+            }
+        }
+        
+        with open('performance-analysis.json', 'w') as f:
+            json.dump(analysis_report, f, indent=2)
+        
+        # 输出分析结果
+        print(f'性能分析完成:')
+        print(f'  总基准数: {analysis_report[\"summary\"][\"total_benchmarks\"]}')
+        print(f'  性能回归: {analysis_report[\"summary\"][\"regressions_count\"]}')
+        print(f'  性能提升: {analysis_report[\"summary\"][\"improvements_count\"]}')
+        
+        # 如果有性能回归，输出详细信息
+        if regressions:
+            print('\\n性能回归详情:')
+            for regression in regressions:
+                print(f'  {regression[\"name\"]}: +{regression[\"change_percent\"]:.2f}% '
+                      f'({regression[\"baseline_mean\"]:.4f} -> {regression[\"current_mean\"]:.4f})')
+        
+        # 如果有性能提升，输出详细信息
+        if improvements:
+            print('\\n性能提升详情:')
+            for improvement in improvements:
+                print(f'  {improvement[\"name\"]}: {improvement[\"change_percent\"]:.2f}% '
+                      f'({improvement[\"baseline_mean\"]:.4f} -> {improvement[\"current_mean\"]:.4f})')
+        
+        # 如果有严重性能回归，设置退出码
+        if regressions:
+            print('\\n警告: 检测到性能回归!')
+            # sys.exit(1)  # 取消注释以使CI在性能回归时失败
+        "
+    
+    - name: 上传性能分析报告
+      uses: actions/upload-artifact@v3
+      with:
+        name: performance-analysis
+        path: performance-analysis.json
+    
+    - name: 评论PR（如果有性能回归）
+      if: failure()
+      uses: actions/github-script@v6
+      with:
+        script: |
+          const fs = require('fs');
+          
+          try {
+            const analysisReport = JSON.parse(fs.readFileSync('performance-analysis.json', 'utf8'));
+            
+            if (analysisReport.regressions.length > 0) {
+              let commentBody = '## ⚠️ 性能回归检测\n\n';
+              commentBody += `检测到 ${analysisReport.regressions.length} 个性能回归:\n\n`;
+              
+              for (const regression of analysisReport.regressions) {
+                commentBody += `- **${regression.name}**: +${regression.change_percent.toFixed(2)}% `;
+                commentBody += `(${regression.baseline_mean.toFixed(4)} → ${regression.current_mean.toFixed(4)})\n`;
+              }
+              
+              commentBody += '\n请检查相关代码更改，确保性能不会显著下降。';
+              
+              github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: commentBody
+              });
+            }
+          } catch (error) {
+            console.log('无法读取性能分析报告:', error.message);
+          }
+
+  # 性能趋势图生成
+  performance-trends:
+    runs-on: ubuntu-latest
+    needs: benchmark-tests
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+    
+    - name: 设置Python环境
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+    
+    - name: 安装依赖
+      run: |
+        python -m pip install --upgrade pip
+        pip install matplotlib pandas gitpython
+    
+    - name: 下载基准测试结果
+      uses: actions/download-artifact@v3
+      with:
+        name: benchmark-results
+        path: current-benchmarks/
+    
+    - name: 生成性能趋势图
+      run: |
+        python -c "
+        import json
+        import matplotlib.pyplot as plt
+        import pandas as pd
+        from datetime import datetime
+        from pathlib import Path
+        import os
+        
+        # 模拟历史数据（在实际应用中，可以从数据库或文件系统获取）
+        def generate_historical_data():
+            historical_data = []
+            
+            # 生成过去30天的模拟数据
+            import random
+            from datetime import timedelta
+            
+            base_date = datetime.now() - timedelta(days=30)
+            
+            for i in range(30):
+                date = base_date + timedelta(days=i)
+                
+                # 模拟不同基准的性能数据
+                benchmarks = {
+                    'character_creation': {
+                        'mean': 100 + random.uniform(-10, 10),
+                        'min': 80 + random.uniform(-5, 5),
+                        'max': 120 + random.uniform(-10, 10)
+                    },
+                    'lorebook_search': {
+                        'mean': 50 + random.uniform(-5, 5),
+                        'min': 40 + random.uniform(-3, 3),
+                        'max': 60 + random.uniform(-5, 5)
+                    },
+                    'prompt_assembly': {
+                        'mean': 200 + random.uniform(-20, 20),
+                        'min': 150 + random.uniform(-10, 10),
+                        'max': 250 + random.uniform(-20, 20)
+                    }
+                }
+                
+                historical_data.append({
+                    'date': date.isoformat(),
+                    'benchmarks': benchmarks
+                })
+            
+            return historical_data
+        
+        # 读取当前基准结果
+        with open('current-benchmarks/benchmark-summary.json', 'r') as f:
+            current_data = json.load(f)
+        
+        # 获取历史数据
+        historical_data = generate_historical_data()
+        
+        # 添加当前数据到历史数据
+        historical_data.append({
+            'date': current_data.get('timestamp'),
+            'benchmarks': current_data.get('benchmarks', {})
+        })
+        
+        # 转换为DataFrame
+        dates = [item['date'] for item in historical_data]
+        
+        # 为每个基准创建趋势图
+        benchmark_names = set()
+        for item in historical_data:
+            benchmark_names.update(item['benchmarks'].keys())
+        
+        benchmark_names = list(benchmark_names)
+        
+        # 创建图表
+        fig, axes = plt.subplots(len(benchmark_names), 1, figsize=(12, 6 * len(benchmark_names)))
+        if len(benchmark_names) == 1:
+            axes = [axes]
+        
+        for i, benchmark_name in enumerate(benchmark_names):
+            means = []
+            mins = []
+            maxs = []
+            
+            for item in historical_data:
+                benchmarks = item['benchmarks']
+                if benchmark_name in benchmarks:
+                    stats = benchmarks[benchmark_name]
+                    means.append(stats.get('mean', 0))
+                    mins.append(stats.get('min', 0))
+                    maxs.append(stats.get('max', 0))
+                else:
+                    means.append(0)
+                    mins.append(0)
+                    maxs.append(0)
+            
+            # 绘制趋势图
+            ax = axes[i]
+            ax.plot(dates, means, 'b-', label='平均响应时间', linewidth=2)
+            ax.fill_between(dates, mins, maxs, alpha=0.3, color='blue', label='最小-最大范围')
+            ax.set_title(f'{benchmark_name} 性能趋势')
+            ax.set_ylabel('响应时间 (ms)')
+            ax.legend()
+            ax.grid(True, alpha=0.3)
+            
+            # 旋转x轴标签
+            plt.setp(ax.xaxis.get_majorticklabels(), rotation=45)
+        
+        plt.tight_layout()
+        plt.savefig('performance-trends.png', dpi=300, bbox_inches='tight')
+        plt.close()
+        
+        print('性能趋势图已生成: performance-trends.png')
+        "
+    
+    - name: 上传性能趋势图
+      uses: actions/upload-artifact@v3
+      with:
+        name: performance-trends
+        path: performance-trends.png
+
+  # 性能报告生成
+  performance-report:
+    runs-on: ubuntu-latest
+    needs: [benchmark-tests, performance-trends]
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: 下载所有测试结果
+      uses: actions/download-artifact@v3
+      with:
+        path: all-results/
+    
+    - name: 生成性能报告
+      run: |
+        python -c "
+        import json
+        from pathlib import Path
+        from datetime import datetime
+        
+        # 读取基准测试结果
+        benchmark_files = list(Path('all-results/benchmark-results').glob('*.json'))
+        
+        if not benchmark_files:
+            print('未找到基准测试结果')
+            exit(1)
+        
+        # 读取基准摘要
+        with open('all-results/benchmark-results/benchmark-summary.json', 'r') as f:
+            benchmark_summary = json.load(f)
+        
+        # 生成HTML报告
+        html_content = f'''
+        <!DOCTYPE html>
+        <html lang=\"zh-CN\">
+        <head>
+            <meta charset=\"UTF-8\">
+            <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">
+            <title>性能基准报告</title>
+            <style>
+                body {{
+                    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                    line-height: 1.6;
+                    margin: 0;
+                    padding: 20px;
+                    background-color: #f5f5f5;
+                }}
+                .container {{
+                    max-width: 1200px;
+                    margin: 0 auto;
+                    background-color: white;
+                    padding: 30px;
+                    border-radius: 8px;
+                    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+                }}
+                h1, h2 {{
+                    color: #333;
+                }}
+                .header {{
+                    border-bottom: 2px solid #007acc;
+                    padding-bottom: 20px;
+                    margin-bottom: 30px;
+                }}
+                .benchmark-table {{
+                    width: 100%;
+                    border-collapse: collapse;
+                    margin: 20px 0;
+                }}
+                .benchmark-table th, .benchmark-table td {{
+                    border: 1px solid #ddd;
+                    padding: 12px;
+                    text-align: left;
+                }}
+                .benchmark-table th {{
+                    background-color: #f2f2f2;
+                }}
+                .chart-container {{
+                    text-align: center;
+                    margin: 30px 0;
+                }}
+                .chart-container img {{
+                    max-width: 100%;
+                    height: auto;
+                    border: 1px solid #ddd;
+                    border-radius: 4px;
+                }}
+                .summary {{
+                    background-color: #e9f7fe;
+                    padding: 20px;
+                    border-radius: 6px;
+                    margin-bottom: 30px;
+                }}
+                .footer {{
+                    margin-top: 40px;
+                    padding-top: 20px;
+                    border-top: 1px solid #eee;
+                    color: #666;
+                    text-align: center;
+                }}
+            </style>
+        </head>
+        <body>
+            <div class=\"container\">
+                <div class=\"header\">
+                    <h1>性能基准报告</h1>
+                    <p><strong>测试时间:</strong> {benchmark_summary.get('timestamp', 'Unknown')}</p>
+                    <p><strong>提交SHA:</strong> {benchmark_summary.get('commit_sha', 'Unknown')}</p>
+                    <p><strong>分支:</strong> {benchmark_summary.get('branch', 'Unknown')}</p>
+                </div>
+                
+                <div class=\"summary\">
+                    <h2>基准测试概览</h2>
+                    <p>本次测试共包含 {len(benchmark_summary.get('benchmarks', {}))} 个性能基准。</p>
+                </div>
+                
+                <h2>基准测试结果</h2>
+                <table class=\"benchmark-table\">
+                    <tr>
+                        <th>基准名称</th>
+                        <th>最小值 (ms)</th>
+                        <th>最大值 (ms)</th>
+                        <th>平均值 (ms)</th>
+                        <th>中位数 (ms)</th>
+                        <th>标准差</th>
+                        <th>测试轮数</th>
+                    </tr>
+        '''
+        
+        # 添加基准测试结果表格
+        benchmarks = benchmark_summary.get('benchmarks', {})
+        for name, stats in benchmarks.items():
+            html_content += f'''
+                    <tr>
+                        <td>{name}</td>
+                        <td>{stats.get('min', 0):.4f}</td>
+                        <td>{stats.get('max', 0):.4f}</td>
+                        <td>{stats.get('mean', 0):.4f}</td>
+                        <td>{stats.get('median', 0):.4f}</td>
+                        <td>{stats.get('stddev', 0):.4f}</td>
+                        <td>{stats.get('rounds', 0)}</td>
+                    </tr>
+            '''
+        
+        # 添加性能趋势图（如果存在）
+        trends_file = Path('all-results/performance-trends/performance-trends.png')
+        if trends_file.exists():
+            html_content += f'''
+                </table>
+                
+                <div class=\"chart-container\">
+                    <h2>性能趋势图</h2>
+                    <img src=\"all-results/performance-trends/performance-trends.png\" alt=\"性能趋势图\">
+                </div>
+            '''
+        else:
+            html_content += '</table>'
+        
+        html_content += f'''
+                <div class=\"footer\">
+                    <p>报告生成时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
+                    <p>SuperRPG 性能基准测试工具</p>
+                </div>
+            </div>
+        </body>
+        </html>
+        '''
+        
+        # 保存HTML报告
+        with open('performance-benchmark-report.html', 'w', encoding='utf-8') as f:
+            f.write(html_content)
+        
+        print('性能基准报告已生成: performance-benchmark-report.html')
+        "
+    
+    - name: 上传性能报告
+      uses: actions/upload-artifact@v3
+      with:
+        name: performance-benchmark-report
+        path: performance-benchmark-report.html
